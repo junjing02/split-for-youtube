@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Split for YouTube</title>
+  <meta name="description" content="A Chrome extension that splits the YouTube watch page into a resizable two-column layout — video on the left, description, recommendations, and comments on the right." />
+  <link rel="icon" href="icon.png" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="nav">
+    <div class="nav-inner">
+      <a class="brand" href="#top">
+        <img src="icon.png" alt="" width="28" height="28" />
+        <span>Split for YouTube</span>
+      </a>
+      <nav>
+        <a href="#features">Features</a>
+        <a href="#install">Install</a>
+        <a href="https://github.com/" class="nav-github" id="github-link">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <section id="top" class="hero">
+      <div class="hero-inner">
+        <h1>Watch and read at the same time.</h1>
+        <p class="subtitle">
+          Split for YouTube turns the watch page into a clean two-column layout —
+          video on the left, description, recommendations, and comments on the right.
+        </p>
+        <div class="cta-row">
+          <a href="#install" class="btn btn-primary">Get started</a>
+          <a href="https://github.com/" id="github-link-2" class="btn btn-secondary">View on GitHub</a>
+        </div>
+      </div>
+
+      <div class="mock" aria-hidden="true">
+        <div class="mock-window">
+          <div class="mock-dots"><span></span><span></span><span></span></div>
+          <div class="mock-body">
+            <div class="mock-video">
+              <div class="mock-play">▶</div>
+            </div>
+            <div class="mock-side">
+              <div class="mock-row mock-row-header">Description</div>
+              <div class="mock-row mock-row-tall">
+                <div class="mock-row-header">Recommended</div>
+                <div class="mock-line"></div>
+                <div class="mock-line"></div>
+                <div class="mock-line short"></div>
+              </div>
+              <div class="mock-row mock-row-tall">
+                <div class="mock-row-header">Comments</div>
+                <div class="mock-line"></div>
+                <div class="mock-line short"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="features" class="features">
+      <h2>Why use it</h2>
+      <p class="section-lead">
+        YouTube's description, recommendations, and comments all compete with the video
+        for space, and none of it is resizable. Split for YouTube fixes that.
+      </p>
+
+      <div class="feature-grid">
+        <div class="feature-card">
+          <h3>Video-first by default</h3>
+          <p>Every video loads with the player at its largest possible size — the side pane takes whatever's left.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Resizable, your way</h3>
+          <p>Drag the divider between video and side pane, or between recommendations and comments, to whatever split you want.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Collapsible sections</h3>
+          <p>Description, recommendations, and comments each collapse to a single header with one click.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Live streams supported</h3>
+          <p>Recommendations automatically become live chat while a stream is live.</p>
+        </div>
+        <div class="feature-card">
+          <h3>Stays out of the way</h3>
+          <p>Theater mode, shorts, and smaller windows all fall back to YouTube's normal layout, untouched.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="install" class="install">
+      <h2>Install</h2>
+      <p class="section-lead">Not on the Chrome Web Store yet — load it as an unpacked extension:</p>
+      <ol class="steps">
+        <li>Download or clone the repository.</li>
+        <li>Open <code>chrome://extensions</code> in Chrome (or any Chromium-based browser).</li>
+        <li>Turn on <strong>Developer mode</strong> (top right).</li>
+        <li>Click <strong>Load unpacked</strong> and select the project folder.</li>
+        <li>Open any YouTube video.</li>
+      </ol>
+      <p class="note">Works best on a spacious, landscape-oriented window — full screen or close to it.</p>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <p>Split for YouTube — <span id="year"></span></p>
+  </footer>
+
+  <script src="script.js"></script>
+</body>
+</html>

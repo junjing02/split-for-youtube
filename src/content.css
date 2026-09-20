@@ -1,0 +1,699 @@
+/* Two columns: left = just the video, filling the whole column; right = a
+   resizable side pane with a small collapsible description section on
+   top, then recommendations (or live chat), then comments, each
+   independently scrollable. A draggable divider sits between the two
+   columns, and a second one between recommendations/chat and comments. */
+html.yt-split-active body {
+  overflow: hidden !important;
+}
+
+/* Full-bleed: #columns below is width: 100% of its own parent, but that
+   parent (and its own ancestors) can themselves be capped/centered by
+   YouTube's normal (non-theater) sizing — see spanFullWidth() in
+   content.js, which measures and overrides those ancestors at runtime so
+   the whole split actually spans the real window edges instead of
+   stopping short at YouTube's normal margins. */
+
+html.yt-split-active #columns {
+  display: grid !important;
+  /* Video gets the flexible share — its minimum is --yt-split-video-min-w
+     (content.js's constrainVideoSize(), a height-aware floor, falling back
+     to 480px), not a fixed 480px. This is deliberately the STRUCTURAL
+     guarantee against the two columns overlapping: CSS Grid's minmax()
+     minimum is a hard floor the browser's own layout algorithm enforces,
+     no matter what --yt-split-side-w (the side pane's minmax MAX) asks
+     for — even a wrong/stale JS-computed side-width value can only ever
+     shrink the side pane's ACTUAL rendered size to fit what's left after
+     this column takes its minimum; it can never push into it. JS-computed
+     pixel values (clampSideWidth, enforceMinVideoHeight,
+     preventColumnOverlap in content.js) still choose a good DEFAULT/
+     dragged width and exist as defense in depth, but this is the
+     mechanism that can't be wrong. */
+  grid-template-columns: minmax(var(--yt-split-video-min-w, 480px), 1fr) 10px minmax(
+      400px,
+      var(--yt-split-side-w, 402px)
+    );
+  grid-template-rows: minmax(240px, 1fr);
+  width: 100% !important;
+  height: calc(100vh - var(--ytd-masthead-height, 56px)) !important;
+  max-height: calc(100vh - var(--ytd-masthead-height, 56px)) !important;
+  overflow: hidden !important;
+  padding: clamp(4px, 0.5vw, 6px) !important;
+  gap: clamp(4px, 0.5vw, 6px);
+  box-sizing: border-box !important;
+  background: var(--yt-spec-base-background, #0f0f0f) !important;
+  align-items: stretch !important;
+}
+
+/* Left column: just the video, letterboxed/centered to fill the column.
+   grid-column/grid-row are !important here because #primary is a
+   YouTube-native element with its own extensive native styles — without
+   !important a more specific native rule could win on these specific
+   properties even though our other overrides on it apply fine, which is
+   exactly the kind of mismatch that causes a one-sided misalignment
+   against #yt-split-side-pane (a plain element we created with nothing
+   competing against it). */
+html.yt-split-active #primary {
+  grid-column: 1 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  margin: 0 !important;
+  /* Same spacing scale used everywhere else (the outer grid padding, the
+     side pane's gap) — this is what makes the space around the video
+     consistent with the rest of the page instead of an unrelated
+     one-off value, and it's equal on all four sides, not just a
+     bottom-heavy margin. #primary-inner then fills exactly this padded
+     box, so content.js's height measurement (primaryInner's own
+     getBoundingClientRect()) already excludes it automatically — no
+     separate JS-side gap constant needed. */
+  padding: clamp(4px, 0.5vw, 6px) !important;
+  box-sizing: border-box !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+}
+
+/* Same content-visibility override as the side pane (see below) — on a
+   cold first load this has been observed leaving the video frame itself
+   blank (audio still playing, so the element is very much alive, just
+   not painting) even though #primary isn't moved to a new parent the
+   way #secondary/#comments are; its column's grid placement still
+   changes significantly on activation, which may be enough to trigger
+   the same stale-visibility-check issue in the player's own overlay
+   elements. */
+html.yt-split-active #primary,
+html.yt-split-active #primary * {
+  content-visibility: visible !important;
+}
+
+html.yt-split-active #primary-inner {
+  display: flex !important;
+  flex-direction: column !important;
+  justify-content: center !important;
+  height: 100% !important;
+  overflow: hidden !important;
+}
+
+html.yt-split-active #player-container-outer {
+  flex: 0 0 auto !important;
+  width: 100% !important;
+  /* We deliberately don't force the player's own width/height/position
+     beyond the column's width — it sizes itself the same way it does on
+     normal YouTube. Forcing more than that previously broke its controls
+     and centering. This caps its width (and so, via its own aspect
+     ratio, its height) at whatever makes it as large as possible while
+     still fitting the column's (now consistently padded) height —
+     content.js computes this from the actual available height and the
+     video's real aspect ratio. */
+  max-width: var(--yt-split-video-max-w, 100%) !important;
+  margin: 0 auto !important;
+  border-radius: 12px !important;
+  overflow: hidden !important;
+  /* HEIGHT is deliberately NOT left to YouTube's own JS anymore. That
+     relies on the player noticing our resize nudge and recalculating an
+     explicit pixel height to match the new width — and at a big enough
+     width change (specifically shrinking the column a lot, e.g. the
+     video-ended widened state), it was observed NOT catching up: the
+     container kept its OLD height while the width followed our CSS
+     immediately, producing a badly mismatched box — a video that had
+     become visually SQUARE instead of keeping its real aspect ratio, with
+     the frame content cropped to fill that wrong shape. `aspect-ratio`
+     here makes the browser itself compute height from width (once
+     height is `auto`), completely independent of whatever YouTube's own
+     JS does or doesn't recalculate — `!important` on a stylesheet rule
+     overrides a plain (non-important) inline height YouTube's JS may have
+     set, so this wins regardless of nudge timing. content.js keeps
+     --yt-split-video-ratio in sync with the video's real, measured aspect
+     ratio (not always 16:9). */
+  aspect-ratio: var(--yt-split-video-ratio, 16 / 9) !important;
+  height: auto !important;
+}
+
+/* The OUTER box (#player-container-outer, above) now reliably keeps the
+   right shape via aspect-ratio — but that alone wasn't enough: the layers
+   INSIDE it (the player's own wrapper, and the <video> element itself)
+   are still sized by YouTube's own JS, which sets explicit pixel
+   width/height directly on them and doesn't necessarily recompute either
+   just because the outer box's shape changed via CSS. When those stayed
+   at an old, larger size while the outer box (overflow: hidden) was
+   already the new, correctly-shaped one, the result was still a cropped
+   video — a zoomed-in slice of the frame, not a shape mismatch this time,
+   but cropping all the same. Force every inner layer to fill its parent
+   via plain CSS percentages, and — the actual hard guarantee — set
+   object-fit: contain on the <video> element itself, so the real video
+   frame always letterboxes/pillarboxes to fit whatever box it's given
+   and is NEVER cropped, regardless of what pixel dimensions YouTube's own
+   JS does or doesn't apply on top of this. #movie_player and
+   .html5-video-container are YouTube's own long-standing, stable player
+   wrapper id/class. */
+html.yt-split-active #player-container-outer #movie_player,
+html.yt-split-active #player-container-outer .html5-video-container,
+html.yt-split-active #player-container-outer video {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html.yt-split-active #player-container-outer video {
+  object-fit: contain !important;
+}
+
+/* Draggable divider between the two columns. The clickable box (10px,
+   matches DIVIDER_WIDTH in content.js) is wider than what's visible — a
+   ~3px target invisible until hover was too hard to land a mouse on
+   precisely, which was why dragging didn't register at all. The ::after
+   pseudo-element carries a thin (3px) centered highlight, shown on hover
+   or while dragging, so it still reads as thin visually. */
+html.yt-split-active #yt-split-resizer {
+  grid-column: 2 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  margin: 0 !important;
+  position: relative;
+  width: 10px;
+  height: 100%;
+  cursor: col-resize;
+}
+
+html.yt-split-active #yt-split-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 3px;
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+}
+
+html.yt-split-active #yt-split-resizer:hover::after {
+  background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.2));
+}
+
+body.yt-split-resizing html.yt-split-active #yt-split-resizer::after {
+  background: var(--yt-spec-text-secondary, #aaaaaa);
+}
+
+body.yt-split-resizing {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
+
+/* Second resizer: between recommendations/chat (top) and comments
+   (bottom) inside the side pane. Its own flex-participating box height
+   matches the side pane's gap exactly (clamp(4px, 0.5vw, 6px)), same as
+   #secondary/#yt-split-comments-pane's negative margins above — together
+   these make it BE the visual gap between recommendations and comments,
+   rather than adding to a gap that's already there on both sides of it,
+   so the total spacing matches description↔recommendations exactly
+   instead of coming out much larger. The wide, easy-to-grab hit area
+   lives on ::before instead (absolutely positioned, so it doesn't
+   contribute to flex sizing the way growing the element's own box did
+   previously — that's what was causing the mismatch in the first
+   place). */
+html.yt-split-active #yt-split-vresizer {
+  order: 2 !important;
+  flex: 0 0 auto !important;
+  margin: 0 !important;
+  position: relative;
+  width: 100%;
+  height: clamp(4px, 0.5vw, 6px);
+  border-radius: 2px;
+  background: transparent;
+  transition: background-color 0.15s ease;
+  cursor: row-resize;
+}
+
+html.yt-split-active #yt-split-vresizer::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: -7px;
+  bottom: -7px;
+  cursor: row-resize;
+}
+
+html.yt-split-active #yt-split-vresizer:hover {
+  background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.2));
+}
+
+body.yt-split-resizing-v html.yt-split-active #yt-split-vresizer {
+  background: var(--yt-spec-text-secondary, #aaaaaa);
+}
+
+body.yt-split-resizing-v {
+  cursor: row-resize !important;
+  user-select: none !important;
+}
+
+/* Right column: description (small, collapsed) + recommendations/chat +
+   comments, stacked. */
+html.yt-split-active #yt-split-side-pane {
+  grid-column: 3 !important;
+  grid-row: 1 !important;
+  align-self: stretch !important;
+  margin: 0 !important;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(4px, 0.5vw, 6px);
+  min-width: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Description: collapsed to just its header by default (a very small
+   section, as requested) — click to expand in place. Doesn't take part in
+   the recommendations/comments resizer below; it just claims whatever
+   space its own (small, capped) content needs, and recommendations/
+   comments share what's left. */
+html.yt-split-active #yt-split-desc-pane {
+  order: 0;
+  flex: 0 0 auto;
+  width: 100%;
+  background: var(--yt-spec-general-background-a, #212121);
+  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  border-radius: 12px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+html.yt-split-active .yt-split-desc-header {
+  all: unset;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-sizing: border-box;
+  width: 100%;
+  /* 16px on every side, matching #yt-split-desc-body's own 16px
+     left/right/bottom padding below — this used to be 12px top/bottom vs.
+     16px left/right, so the pane's effective padding (this header's own
+     box when collapsed; this top edge + the body's other three edges when
+     expanded) came out inconsistent: 12px on top, 16px everywhere else. */
+  padding: 16px;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--yt-spec-text-secondary, #aaaaaa);
+}
+
+html.yt-split-active .yt-split-desc-header::after {
+  content: "\25B8"; /* ▸ */
+  transition: transform 0.15s ease;
+}
+
+html.yt-split-active #yt-split-desc-pane.yt-split-desc-expanded .yt-split-desc-header::after {
+  transform: rotate(90deg);
+}
+
+html.yt-split-active #yt-split-desc-body {
+  max-height: 0;
+  overflow-y: hidden;
+  padding: 0 16px;
+  box-sizing: border-box;
+  transition: max-height 0.2s ease;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25)) transparent;
+}
+
+html.yt-split-active #yt-split-desc-pane.yt-split-desc-expanded #yt-split-desc-body {
+  max-height: min(320px, 40vh);
+  overflow-y: auto;
+  padding: 0 16px 16px;
+}
+
+html.yt-split-active #yt-split-desc-body::-webkit-scrollbar {
+  width: 8px;
+}
+
+html.yt-split-active #yt-split-desc-body::-webkit-scrollbar-thumb {
+  background-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25));
+  border-radius: 4px;
+}
+
+html.yt-split-active #yt-split-desc-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* #below now lives nested inside #yt-split-desc-body instead of being its
+   own standalone box in the left column — undo the specific card styling
+   it used to need there (the description pane above provides that now)
+   so it flows as plain content within the body's own padding/scroll.
+   Only resetting the exact properties we previously set, not "all" —
+   YouTube's own native styling for #below's nested content (title font,
+   description formatting, etc.) still needs to apply untouched. */
+html.yt-split-active #below {
+  flex: none !important;
+  min-height: 0 !important;
+  overflow: visible !important;
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-sizing: border-box !important;
+}
+
+/* #below itself has no horizontal padding/margin of its own (reset above),
+   but its DIRECT CHILDREN (YouTube's own native title/metadata/owner
+   wrapper — not restructured, just relocated) can still carry their own
+   native horizontal padding/margin, sized for their normal placement
+   below a full-width video. That's an extra, inconsistent inset on top of
+   #yt-split-desc-body's own 16px padding, making the content look
+   slightly off from the pane's edges instead of flush with it. Reset only
+   LEFT/RIGHT here — vertical spacing between these children is YouTube's
+   own native rhythm and should stay untouched. */
+html.yt-split-active #below > * {
+  margin-left: 0 !important;
+  margin-right: 0 !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+/* The description text/views/"...more" card reported with a visibly
+   SMALLER right inset than left — content wrapping almost flush with the
+   pane's right edge while the left stays properly indented — and capping
+   just ytd-text-inline-expander (tried first) didn't fully fix it, meaning
+   some OTHER element in here, at some OTHER nesting depth, has the same
+   problem: a width sized for YouTube's wide native description column
+   (~600-700px) that doesn't shrink just because it's now inside our much
+   narrower side pane. A box wider than its available content area
+   extends past the intended right padding boundary (the left edge stays
+   put — that's the box's fixed origin; only the right/far edge has
+   anywhere to overflow TO), which is exactly the "right side tighter than
+   left" symptom reported twice now for two different elements. Rather
+   than keep guessing which specific element it is next, this caps EVERY
+   descendant of #below at 100% of its own parent's width — structurally
+   impossible for anything in here to overflow sideways regardless of
+   what native width YouTube gave it. Safe defensively (pure width
+   containment, unlike the earlier display/flex-direction attempt that
+   broke the Subscribe button's own internal state). max-width alone
+   wasn't the full fix either — reported still pushing past the right
+   edge specifically once the side pane got narrow (near its own minimum
+   width). That's a separate, classic flexbox gotcha: flex items default
+   to min-width: auto, which refuses to shrink an item below its CONTENT's
+   own intrinsic width no matter how little room the flex container
+   actually has — things like the "views · time · N products" metadata
+   row (several flex children in one line) hit exactly this once there's
+   not enough width for all of them at their natural size, and overflow
+   rightward instead of wrapping/shrinking. max-width caps the CONTAINER;
+   it does nothing for flex CHILDREN fighting their own min-width: auto
+   floor. min-width: 0 here is the standard, well-known fix. */
+html.yt-split-active #below * {
+  max-width: 100% !important;
+  min-width: 0 !important;
+  box-sizing: border-box !important;
+}
+
+/* A fix forcing #below #subscribe-button into a single flex row (to
+   combine the Subscribe button + notification bell into one pill, like
+   vanilla YouTube) was tried and reverted — it made the Subscribe button
+   disappear entirely instead. #subscribe-button evidently isn't a plain
+   layout wrapper the way it looks; forcing display/flex-direction on it
+   broke whatever internal state actually controls the button's own
+   visibility. Don't re-attempt that RESTYLING approach — if revisited,
+   first confirm the actual selector/structure live (e.g. via DevTools on a
+   real video) rather than assuming from the id name alone.
+
+   Different ask, different (safer) mechanism: explicitly HIDE the
+   Subscribe/Subscribed toggle + notification bell entirely, rather than
+   trying to restyle them. Hiding doesn't touch the component's own
+   internal rendering logic the way forcing a layout mode did, so it
+   shouldn't be able to break it the same way. Targets the specific
+   renderer tag, not the #subscribe-button wrapper div — that wrapper also
+   contains the "Join" (channel membership) button, a separate, unrelated
+   component that should stay visible. */
+html.yt-split-active #below ytd-subscribe-button-renderer {
+  display: none !important;
+}
+
+/* Shared look for recommendations/chat + comments. Undragged, they split
+   whatever height is left after the description section above them 50/50
+   (flex-basis defaults to the CSS var's "50%" fallback); dragging the
+   resizer above sets an explicit px height on #secondary instead, and
+   #yt-split-comments-pane (flex: 1 1 auto) takes whatever's left.
+   #secondary is YouTube's own native element (unlike the comments pane,
+   which is a plain div we created) — margin: 0 strips any top/bottom
+   margin YouTube's own stylesheet gives it for ITS normal layout, which
+   doesn't apply here and was the likely cause of its box not lining up
+   with content on the other side.
+   #secondary is flex-grow: 0, flex-shrink: 0 — it renders at EXACTLY its
+   dragged/50% basis, full stop. It was previously flex-shrink: 1 (to
+   yield space when the description section expands), but that was the
+   actual resizer bug: #yt-split-comments-pane's flex-basis is `auto`,
+   which resolves to its full, unconstrained CONTENT height — often
+   thousands of pixels for a busy comment section. Since that basis
+   almost always exceeds the container, flex-shrink activates on every
+   single layout pass, distributed proportionally by shrink-factor ×
+   basis — and with #secondary's shrink enabled, some of that shrinkage
+   landed on it too, every time, regardless of what you'd dragged it to.
+   That's a constant, silent fight between your drag and the flex
+   algorithm. Removing #secondary's shrink stops it from participating in
+   that fight at all; the "expanding description needs room" case is
+   instead handled by the JS clamp alone (clampTopHeight already
+   subtracts the description's current height), which prevents dragging
+   past what's actually available in the first place. */
+html.yt-split-active #secondary {
+  order: 1 !important;
+  flex: 0 0 var(--yt-split-top-h, 50%) !important;
+  margin: 0 !important;
+}
+
+html.yt-split-active #yt-split-comments-pane {
+  order: 3 !important;
+  flex: 1 1 auto !important;
+  margin: 0 !important;
+}
+
+/* Bottom/top margins that cancel the flex `gap` on either side of the
+   vresizer — see the vresizer's own rule below for why: otherwise the
+   visual spacing between recommendations and comments (gap + vresizer's
+   own height + gap) came out much larger than the plain single gap between
+   description and recommendations, even though both used the "same" gap
+   value.
+   Scoped to only apply while the vresizer is actually part of the flex
+   layout, i.e. neither pane is collapsed. When either IS collapsed, the
+   vresizer gets display: none (below) and is removed from the flex layout
+   entirely — #secondary and #yt-split-comments-pane then become directly
+   adjacent flex items with a single plain `gap` between them, and nothing
+   left for these negative margins to cancel out. Applying them
+   unconditionally (as this used to) meant they collided directly with each
+   other the moment either pane collapsed (gap − 6px − 6px = a negative net
+   distance), pulling the two panes into a visible overlap instead of a
+   clean gap — the "weird and inconsistent spacing when collapsed" bug. */
+html.yt-split-active:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #secondary {
+  margin-bottom: calc(-1 * clamp(4px, 0.5vw, 6px)) !important;
+}
+
+html.yt-split-active:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-comments-pane {
+  margin-top: calc(-1 * clamp(4px, 0.5vw, 6px)) !important;
+}
+
+/* #secondary normally never grows past its dragged/50% basis (flex-grow: 0
+   — see the long comment above on why), which is right while both panes
+   are expanded. But that meant collapsing comments (freeing up all the
+   space below) left recommendations pinned at its old height instead of
+   expanding into the newly-freed room — a big dead gap at the bottom of
+   the side pane, and asymmetric with the reverse case (collapsing
+   RECOMMENDATIONS already lets comments fill the space, since
+   #yt-split-comments-pane is flex: 1 1 auto unconditionally). Let
+   #secondary grow to fill the space too, but only while it's the one
+   that's expanded and comments is the one collapsed. */
+html.yt-split-active:has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  #secondary:not(.yt-split-pane-collapsed) {
+  flex: 1 1 auto !important;
+}
+
+/* YouTube's recommendation/comment renderers very likely use
+   content-visibility: auto internally (standard practice for long
+   lists) to skip rendering off-screen items until they're determined to
+   be near the viewport. That determination happens relative to the
+   element's scroll-container ancestry — which we've just changed by
+   moving #secondary/#comments into new containers we created. On a
+   genuinely cold page load (nothing cached, first-ever navigation in the
+   session), this has been observed leaving items permanently blank
+   (video/recommendations/comments visually empty despite the layout
+   itself being positioned correctly and the video audibly playing) —
+   plausibly because the visibility check ran once, against a container
+   that hadn't settled into its final size yet, and never re-ran.
+   Force it off for the containers themselves AND for the individual
+   list-item renderers specifically (where YouTube's own virtualization
+   actually lives) — but deliberately NOT with a blanket `*` over every
+   descendant like this used to. content-visibility: auto implies CSS
+   containment (contain: layout style paint) on its element; forcing it to
+   "visible" removes that containment. A wildcard override was stripping it
+   from EVERY descendant, including ones relying on it for unrelated
+   reasons — e.g. a recommendation item's separate channel-name link,
+   likely absolutely-positioned against containment established by some
+   inner wrapper, could get its containing block knocked out from under it
+   and end up positioned somewhere that no longer lines up with the visible
+   channel-name text, leaving the big outer video-link as the only thing
+   actually there to click — which matches exactly the "channel name click
+   just opens the video" bug. Listing specific YouTube renderer tags here
+   instead is narrower: it still forces open the elements virtualization
+   actually hides, without touching arbitrary other descendants' own
+   containment. If YouTube's markup changes and blank content comes back,
+   extend this list rather than reaching for `*` again. */
+html.yt-split-active #secondary,
+html.yt-split-active #yt-split-comments-pane,
+html.yt-split-active #yt-split-desc-pane,
+html.yt-split-active ytd-compact-video-renderer,
+html.yt-split-active ytd-compact-radio-renderer,
+html.yt-split-active ytd-compact-playlist-renderer,
+html.yt-split-active ytd-compact-movie-renderer,
+html.yt-split-active ytd-item-section-renderer,
+html.yt-split-active ytd-comments-header-renderer,
+html.yt-split-active ytd-comment-thread-renderer,
+html.yt-split-active ytd-comment-view-model,
+html.yt-split-active ytd-comment-renderer {
+  content-visibility: visible !important;
+}
+
+html.yt-split-active #secondary,
+html.yt-split-active #yt-split-comments-pane {
+  min-height: 160px;
+  /* Grid/flex items default to min-width: auto, which floors shrinking at
+     the content's intrinsic minimum width. In the narrow side-by-side
+     fallback below, that floor (recommendation thumbnails etc. not
+     wanting to shrink past a point) could exceed the ~half-window column
+     it's actually given, overflowing into the adjacent comments column —
+     which is what made recommendations appear to render on top of
+     comments. min-width: 0 removes that floor so it actually shrinks to
+     fit. */
+  min-width: 0 !important;
+  width: 100% !important;
+  max-width: 100% !important;
+  background: var(--yt-spec-general-background-a, #212121) !important;
+  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)) !important;
+  border-radius: 12px !important;
+  padding: 0 16px 16px !important;
+  box-sizing: border-box !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  scrollbar-gutter: stable both-edges;
+  scrollbar-width: thin;
+  scrollbar-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25)) transparent;
+}
+
+html.yt-split-active #secondary::-webkit-scrollbar,
+html.yt-split-active #yt-split-comments-pane::-webkit-scrollbar {
+  width: 8px;
+}
+
+html.yt-split-active #secondary::-webkit-scrollbar-thumb,
+html.yt-split-active #yt-split-comments-pane::-webkit-scrollbar-thumb {
+  background-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25));
+  border-radius: 4px;
+}
+
+html.yt-split-active #secondary::-webkit-scrollbar-track,
+html.yt-split-active #yt-split-comments-pane::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* Sticky section label at the top of the recommendations/comments panes
+   so it stays legible while scrolling, and gives the split some visual
+   structure. (The description pane's header, above, is a button instead
+   — see .yt-split-desc-header — so it's excluded here via :not().) */
+html.yt-split-active .yt-split-pane-header:not(.yt-split-desc-header) {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  margin: 0 -16px 12px;
+  /* Top padding matches #yt-split-desc-header's and the grid/gap spacing
+     elsewhere, so the distance from each box's edge to its content starts
+     the same everywhere. */
+  padding: 16px 16px 10px;
+  background: var(--yt-spec-general-background-a, #212121);
+  border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--yt-spec-text-secondary, #aaaaaa);
+}
+
+/* Recommendations/comments are collapsible too, same idea as the
+   description section but defaulting to expanded — click either header
+   to collapse it down to just itself, so the other one gets to use all
+   the freed space. */
+html.yt-split-active .yt-split-collapsible-header {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+html.yt-split-active .yt-split-collapsible-header::after {
+  content: "\25BE"; /* ▾ */
+  transition: transform 0.15s ease;
+  flex: 0 0 auto;
+  margin-left: 8px;
+}
+
+html.yt-split-active #secondary.yt-split-pane-collapsed > .yt-split-collapsible-header::after,
+html.yt-split-active #yt-split-comments-pane.yt-split-pane-collapsed > .yt-split-collapsible-header::after {
+  transform: rotate(-90deg);
+}
+
+html.yt-split-active #secondary.yt-split-pane-collapsed,
+html.yt-split-active #yt-split-comments-pane.yt-split-pane-collapsed {
+  flex: 0 0 auto !important;
+  min-height: 0 !important;
+  max-height: 44px;
+  overflow: hidden !important;
+}
+
+/* Nothing meaningful to drag between them when either is pinned small. */
+html.yt-split-active:has(#secondary.yt-split-pane-collapsed) #yt-split-vresizer,
+html.yt-split-active:has(#yt-split-comments-pane.yt-split-pane-collapsed) #yt-split-vresizer {
+  display: none !important;
+}
+
+/* No narrow-window fallback layout — content.js only activates the split
+   at all on a spacious, landscape window (see meetsActivationThreshold);
+   below that threshold it tears everything down and YouTube renders
+   completely normally. A "stacked, narrower" variant of our own layout
+   used to live here — removed, since most of this project's edge-case
+   bugs came from making every rule here also work at that second size. */
+
+/* Shorts: experimental. Docks the comments engagement panel beside the
+   player instead of as a modal overlay, when it happens to be open.
+   CSS-only (no DOM moves — Shorts' vertical swipe/reel behavior is more
+   fragile to touch than the regular watch page), and a pure no-op if the
+   expected panel isn't present, so it can't break Shorts playback. */
+html.yt-shorts-split-active
+  ytd-engagement-panel-section-list-renderer[target-id="engagement-panel-comments-section"] {
+  position: fixed !important;
+  top: var(--ytd-masthead-height, 56px) !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  left: auto !important;
+  transform: none !important;
+  width: min(400px, 32vw) !important;
+  min-width: 300px !important;
+  height: auto !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border-left: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)) !important;
+  background: var(--yt-spec-base-background, #0f0f0f) !important;
+}
+
+html.yt-shorts-split-active tp-yt-iron-overlay-backdrop {
+  display: none !important;
+}

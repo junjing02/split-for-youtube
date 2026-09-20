@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Split for YouTube",
+  "version": "1.1.0",
+  "description": "Video on the left; description, recommendations, and comments stacked and resizable on the right, for videos and live streams.",
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["src/content.js"],
+      "css": ["src/content.css"],
+      "run_at": "document_idle"
+    }
+  ]
+}
