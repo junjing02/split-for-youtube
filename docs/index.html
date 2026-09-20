@@ -37,29 +37,60 @@
         </div>
       </div>
 
-      <div class="mock" aria-hidden="true">
-        <div class="mock-window">
-          <div class="mock-dots"><span></span><span></span><span></span></div>
-          <div class="mock-body">
-            <div class="mock-video">
+      <div class="compare" id="compare">
+        <div class="compare-dots"><span></span><span></span><span></span></div>
+        <div class="compare-labels">
+          <span>Before</span>
+          <span>After</span>
+        </div>
+        <div class="compare-stage" id="compareStage">
+          <!-- Before: YouTube's normal layout — everything stacked in one column -->
+          <div class="panel panel-before">
+            <div class="stack-video">
               <div class="mock-play">▶</div>
             </div>
-            <div class="mock-side">
-              <div class="mock-row mock-row-header">Description</div>
-              <div class="mock-row mock-row-tall">
-                <div class="mock-row-header">Recommended</div>
-                <div class="mock-line"></div>
-                <div class="mock-line"></div>
-                <div class="mock-line short"></div>
+            <div class="stack-row">
+              <div class="stack-thumb"></div>
+              <div class="stack-lines"><span></span><span class="short"></span></div>
+            </div>
+            <div class="stack-row">
+              <div class="stack-thumb"></div>
+              <div class="stack-lines"><span></span><span class="short"></span></div>
+            </div>
+            <div class="stack-row">
+              <div class="stack-thumb"></div>
+              <div class="stack-lines"><span></span><span class="short"></span></div>
+            </div>
+          </div>
+
+          <!-- After: the split layout -->
+          <div class="panel panel-after" id="panelAfter">
+            <div class="split-body">
+              <div class="mock-video">
+                <div class="mock-play">▶</div>
               </div>
-              <div class="mock-row mock-row-tall">
-                <div class="mock-row-header">Comments</div>
-                <div class="mock-line"></div>
-                <div class="mock-line short"></div>
+              <div class="mock-side">
+                <div class="mock-row mock-row-header">Description</div>
+                <div class="mock-row mock-row-tall">
+                  <div class="mock-row-header">Recommended</div>
+                  <div class="mock-line"></div>
+                  <div class="mock-line"></div>
+                  <div class="mock-line short"></div>
+                </div>
+                <div class="mock-row mock-row-tall">
+                  <div class="mock-row-header">Comments</div>
+                  <div class="mock-line"></div>
+                  <div class="mock-line short"></div>
+                </div>
               </div>
             </div>
           </div>
+
+          <div class="compare-handle" id="compareHandle">
+            <div class="compare-handle-grip">⟷</div>
+          </div>
         </div>
+        <p class="compare-hint">Drag to compare</p>
       </div>
     </section>
 

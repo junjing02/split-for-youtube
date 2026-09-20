@@ -149,43 +149,144 @@ img {
   border: 1px solid var(--border);
 }
 
-/* Mock preview */
+/* Before/after comparison slider. Position is driven entirely by plain
+   inline styles set from script.js (clip-path on the "after" panel, left
+   on the handle) rather than a shared @property-registered custom
+   property — an earlier version used --pos + a CSS transition on it for a
+   free smooth glide, but real testing (Playwright + Chromium) turned up a
+   repaint bug: getComputedStyle correctly reported the new --pos value,
+   but the clip-path/left depending on it never actually repainted, output
+   confirmed byte-identical across multiple different drag/set methods.
+   Direct style writes every animation frame (see the intro tween in
+   script.js) sidestep that entirely and are far more predictable. */
 
-.mock {
+.compare {
   display: flex;
-  justify-content: center;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
 }
 
-.mock-window {
-  width: 100%;
-  max-width: 780px;
-  background: var(--bg-raised);
-  border: 1px solid var(--border);
-  border-radius: 12px;
-  overflow: hidden;
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
-}
-
-.mock-dots {
+.compare-dots {
   display: flex;
   gap: 6px;
-  padding: 10px 14px;
-  border-bottom: 1px solid var(--border);
+  align-self: center;
+  width: 100%;
+  max-width: 780px;
+  padding: 0 4px;
 }
 
-.mock-dots span {
+.compare-dots span {
   width: 9px;
   height: 9px;
   border-radius: 50%;
   background: rgba(255, 255, 255, 0.15);
 }
 
-.mock-body {
+.compare-stage {
+  position: relative;
+  width: 100%;
+  max-width: 780px;
+  height: 340px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+  cursor: ew-resize;
+  touch-action: none;
+  user-select: none;
+}
+
+.panel {
+  position: absolute;
+  inset: 0;
+  padding: 16px;
+}
+
+/* Static labels ABOVE the stage, not embedded inside the clipped panels —
+   a label placed inside .panel-after inherited that panel's clip-path (so
+   it'd get clipped away right along with the content at the slider's
+   extremes) and, oddly, never painted above the "before" panel's own label
+   even at generous reveal amounts despite a higher z-index — not worth
+   chasing further given a static row above solves it more reliably anyway. */
+.compare-labels {
+  display: flex;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 780px;
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-dim);
+}
+
+.panel-after {
+  /* Default, pre-JS state: even split. script.js overrides this inline
+     (clip-path) on every drag/animation frame. */
+  clip-path: inset(0 50% 0 0);
+}
+
+/* "Before": one narrow stacked column, like YouTube's plain watch page —
+   video on top, then every recommendation as a full-width row underneath,
+   scrolling forever with no resizing. */
+.panel-before {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 44px;
+}
+
+.stack-video {
+  background: #000000;
+  border-radius: 8px;
+  height: 100px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stack-row {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+
+.stack-thumb {
+  width: 64px;
+  height: 40px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.stack-lines {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.stack-lines span {
+  height: 7px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.stack-lines span.short {
+  width: 55%;
+}
+
+/* "After": the split layout — video left, resizable stack on the right. */
+.split-body {
   display: grid;
   grid-template-columns: 1.6fr 1fr;
   gap: 10px;
-  padding: 14px;
-  height: 320px;
+  height: 100%;
+  padding-top: 28px;
 }
 
 .mock-video {
@@ -237,6 +338,52 @@ img {
 
 .mock-line.short {
   width: 60%;
+}
+
+/* Draggable handle. Default 50%, overridden inline by script.js on every
+   drag/animation frame, same value it sets on .panel-after's clip-path. */
+.compare-handle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 0;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.compare-handle::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: -1px;
+  width: 2px;
+  background: #ffffff;
+  opacity: 0.85;
+}
+
+.compare-handle-grip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: #ffffff;
+  color: #111111;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+}
+
+.compare-hint {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim);
 }
 
 /* Sections */
@@ -332,13 +479,13 @@ section h2 {
 }
 
 @media (max-width: 640px) {
-  .mock-body {
-    grid-template-columns: 1fr;
-    height: auto;
+  .compare-stage {
+    height: 300px;
   }
 
-  .mock-video {
-    height: 160px;
+  .stack-thumb {
+    width: 48px;
+    height: 30px;
   }
 
   .nav nav {
