@@ -37,34 +37,35 @@
         </div>
       </div>
 
-      <div class="compare" id="compare">
-        <div class="compare-dots"><span></span><span></span><span></span></div>
-        <div class="compare-labels">
-          <span>Before</span>
-          <span>After</span>
-        </div>
-        <div class="compare-stage" id="compareStage">
-          <!-- Before: YouTube's normal layout — everything stacked in one column -->
-          <div class="panel panel-before">
-            <div class="stack-video">
-              <div class="mock-play">▶</div>
-            </div>
-            <div class="stack-row">
-              <div class="stack-thumb"></div>
-              <div class="stack-lines"><span></span><span class="short"></span></div>
-            </div>
-            <div class="stack-row">
-              <div class="stack-thumb"></div>
-              <div class="stack-lines"><span></span><span class="short"></span></div>
-            </div>
-            <div class="stack-row">
-              <div class="stack-thumb"></div>
-              <div class="stack-lines"><span></span><span class="short"></span></div>
+      <div class="compare">
+        <div class="compare-col">
+          <span class="compare-label">Before</span>
+          <div class="compare-window">
+            <div class="compare-dots"><span></span><span></span><span></span></div>
+            <div class="stack-body">
+              <div class="stack-video">
+                <div class="mock-play">▶</div>
+              </div>
+              <div class="stack-row">
+                <div class="stack-thumb"></div>
+                <div class="stack-lines"><span></span><span class="short"></span></div>
+              </div>
+              <div class="stack-row">
+                <div class="stack-thumb"></div>
+                <div class="stack-lines"><span></span><span class="short"></span></div>
+              </div>
+              <div class="stack-row">
+                <div class="stack-thumb"></div>
+                <div class="stack-lines"><span></span><span class="short"></span></div>
+              </div>
             </div>
           </div>
+        </div>
 
-          <!-- After: the split layout -->
-          <div class="panel panel-after" id="panelAfter">
+        <div class="compare-col">
+          <span class="compare-label">After</span>
+          <div class="compare-window">
+            <div class="compare-dots"><span></span><span></span><span></span></div>
             <div class="split-body">
               <div class="mock-video">
                 <div class="mock-play">▶</div>
@@ -85,12 +86,7 @@
               </div>
             </div>
           </div>
-
-          <div class="compare-handle" id="compareHandle">
-            <div class="compare-handle-grip">⟷</div>
-          </div>
         </div>
-        <p class="compare-hint">Drag to compare</p>
       </div>
     </section>
 
