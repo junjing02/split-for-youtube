@@ -526,6 +526,18 @@ img {
   background: linear-gradient(135deg, rgba(16, 185, 129, 0.55), rgba(5, 150, 105, 0.3));
 }
 
+.thumb-violet {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.55), rgba(109, 40, 217, 0.3));
+}
+
+.thumb-sky {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.55), rgba(2, 132, 199, 0.3));
+}
+
+.thumb-lime {
+  background: linear-gradient(135deg, rgba(163, 230, 53, 0.55), rgba(101, 163, 13, 0.3));
+}
+
 .stack-lines {
   flex: 1;
   min-width: 0;
