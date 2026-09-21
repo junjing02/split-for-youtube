@@ -546,14 +546,14 @@ img {
   gap: 5px;
 }
 
+/* Width is set per-line inline in the HTML (varied per row) rather than a
+   single fixed class — real text lines aren't all the same length, and a
+   uniform width for every row's second line read as too mechanical/
+   wireframe-y next to the colored thumbnails. */
 .stack-lines span {
   height: 6px;
   border-radius: 3px;
   background: var(--line);
-}
-
-.stack-lines span.short {
-  width: 55%;
 }
 
 @media (prefers-reduced-motion: reduce) {
