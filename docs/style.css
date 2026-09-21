@@ -412,15 +412,19 @@ img {
 }
 
 /* The recommended-videos sidebar — real YouTube's right column, not a
-   third stacked row. Tall enough for all 5 rows with room to spare
-   (rather than stretched to the full 94% down to the column's own
-   bottom margin), so it doesn't need padding tricks to avoid looking
-   like a wall of list items with nothing below it. */
+   third stacked row. Full height (3%-97%, matching the left column's own
+   video-to-comments span), same as a real sidebar that runs the full
+   length of the page — a shorter box (an earlier version stopped at 32%
+   height, tall enough for only 5 rows) left a large empty gap under it
+   that didn't match real YouTube at all. 15 rows (HTML) fill it with a
+   comfortable margin instead of stretching 5 rows to fit; see the
+   :nth-child(n+7) rule below for why only the first 5 stay visible once
+   this shrinks into the "after" state's short pane. */
 .morph-rec {
   left: 66%;
   top: 3%;
   width: 31%;
-  height: 32%;
+  height: 94%;
 }
 
 .morph-demo.is-after .morph-video {
@@ -479,11 +483,27 @@ img {
   align-items: center;
 }
 
-/* Recommended is a real sidebar in BOTH states now (see .morph-rec above)
-   with room for all 5 rows either way, so it needs no hide/reveal at all
-   — every .item-row in it is just always visible.
+/* Recommended is the INVERSE of Comments below: it has MORE room in
+   "before" (a full-height sidebar with 15 rows, see .morph-rec above)
+   than in "after" (a short pane, same ~5-row budget as before this
+   pane became a full sidebar). So rows 6+ (header=1st child, so
+   item-row 6 = :nth-child(n+7)) are visible by default and hide the
+   moment "after" shrinks the pane, rather than the usual reveal-on-grow
+   pattern — no transition-delay on the hide (matches the shrink, no
+   lingering overflow), but a small delay on the reveal so they fade
+   back in only once "before" has mostly finished growing tall again. */
+.morph-rec .item-row:nth-child(n + 7) {
+  opacity: 1;
+  transition: opacity 0.35s ease;
+  transition-delay: 0.35s;
+}
 
-   Comments is still a compact preview even in its taller "before" spot
+.morph-demo.is-after .morph-rec .item-row:nth-child(n + 7) {
+  opacity: 0;
+  transition-delay: 0s;
+}
+
+/* Comments is still a compact preview even in its taller "before" spot
    (below the description, in the main column — see .morph-comments
    above): its 3rd child onward (header=1st child, so item-rows 4+ =
    :nth-child(n+5)) starts hidden and fades in once the "after" state's
@@ -573,6 +593,7 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .morph-pane,
   .morph-label span,
+  .morph-rec .item-row:nth-child(n + 7),
   .morph-comments .item-row:nth-child(n + 5) {
     transition: none !important;
   }
