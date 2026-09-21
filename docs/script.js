@@ -37,14 +37,17 @@ if ("IntersectionObserver" in window) {
   revealTargets.forEach((el) => observer.observe(el));
 }
 
-// Before/after mockup: auto-loops between the two states once it scrolls
-// into view, showing panes slide/resize into their new positions (see the
-// long comment on .morph-demo in style.css for why this is built as plain
-// left/top/width/height percentage transitions rather than anything
-// resembling the earlier drag-slider). Respects prefers-reduced-motion by
-// just settling on the "after" state (the more informative one) with no
-// animation at all, rather than looping motion those visitors asked to
-// avoid.
+// Before/scrolled/after mockup: auto-loops through three phases once it
+// scrolls into view, showing panes slide/resize into their new positions
+// (see the long comment on .morph-demo in style.css for why this is built
+// as plain left/top/width/height percentage transitions rather than
+// anything resembling the earlier drag-slider). The middle "scrolled"
+// phase demonstrates the actual problem this extension solves — on real
+// YouTube, scrolling down to reach recommendations/comments scrolls the
+// video itself off-screen — rather than just asserting it in copy.
+// Respects prefers-reduced-motion by settling directly on the "after"
+// state (the most informative one, and the one with no motion left to
+// object to) with no animation or loop at all.
 const morphDemo = document.getElementById("morphDemo");
 if (morphDemo) {
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -52,16 +55,28 @@ if (morphDemo) {
     morphDemo.classList.add("is-after");
   } else if ("IntersectionObserver" in window) {
     let loopTimer = null;
-    function loop() {
-      const goingToAfter = !morphDemo.classList.contains("is-after");
-      morphDemo.classList.toggle("is-after", goingToAfter);
-      loopTimer = setTimeout(loop, goingToAfter ? 3200 : 2400);
+    // classes: what .morph-demo should have during this phase (besides
+    // none, which is the plain "before" state). hold: how long to stay on
+    // this phase before advancing to the next one.
+    const PHASES = [
+      { classes: [], hold: 1400 },
+      { classes: ["is-scrolled"], hold: 1500 },
+      { classes: ["is-after"], hold: 2600 },
+    ];
+    let phaseIndex = 0;
+    function applyPhase(i) {
+      morphDemo.classList.remove("is-scrolled", "is-after");
+      PHASES[i].classes.forEach((c) => morphDemo.classList.add(c));
+      loopTimer = setTimeout(() => {
+        phaseIndex = (phaseIndex + 1) % PHASES.length;
+        applyPhase(phaseIndex);
+      }, PHASES[i].hold);
     }
     const morphObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
           if (entry.isIntersecting && loopTimer === null) {
-            loopTimer = setTimeout(loop, 1600);
+            loopTimer = setTimeout(() => applyPhase(0), 1600);
           } else if (!entry.isIntersecting && loopTimer !== null) {
             clearTimeout(loopTimer);
             loopTimer = null;

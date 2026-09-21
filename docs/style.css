@@ -286,12 +286,18 @@ img {
   transition: opacity 0.4s ease;
 }
 
-.morph-label-after {
+.morph-label-after,
+.morph-label-scrolled {
   opacity: 0;
 }
 
+.morph-demo.is-scrolled .morph-label-before,
 .morph-demo.is-after .morph-label-before {
   opacity: 0;
+}
+
+.morph-demo.is-scrolled .morph-label-scrolled {
+  opacity: 1;
 }
 
 .morph-demo.is-after .morph-label-after {
@@ -341,6 +347,15 @@ img {
   position: relative;
   flex: 1;
   min-height: 0;
+  /* Own clipping boundary, not just relying on .compare-window's overflow
+     (an ancestor ~30px further up, past the dots bar). The "before" state
+     never needed this — no pane's top ever went negative — but
+     .is-scrolled (below) deliberately pushes .morph-video's top negative
+     to simulate it scrolling off-screen, and without this, that negative
+     space isn't actually clipped until compare-window's OWN edge, well
+     past the dots bar: the video rendered a visible sliver bleeding into/
+     over the dots bar instead of looking cleanly gone. */
+  overflow: hidden;
 }
 
 .morph-pane {
@@ -425,6 +440,34 @@ img {
   top: 3%;
   width: 31%;
   height: 94%;
+}
+
+/* A middle phase, between "before" and "after": simulates scrolling down
+   the native (non-split) page to reach recommendations/comments, which on
+   real YouTube scrolls the video itself off the top of the screen — the
+   exact problem the extension solves, and worth showing directly rather
+   than just claiming it in the copy. All four panes shift up by the same
+   ~62% delta (one shared page scroll, not independent per-element
+   moves) — video's real bottom edge sits at ~59.7% of the body height (3%
+   top + ~56.7% of its own height at width:60%), so 62% clears it fully
+   off-screen (clipped by .compare-window's overflow:hidden) with a small
+   safety margin. Comments/description land where the video used to be;
+   Recommended just reveals lower rows of its own (already-full) list,
+   same as a real sidebar scrolling with the page. */
+.morph-demo.is-scrolled .morph-video {
+  top: -59%;
+}
+
+.morph-demo.is-scrolled .morph-desc {
+  top: 0%;
+}
+
+.morph-demo.is-scrolled .morph-comments {
+  top: 8%;
+}
+
+.morph-demo.is-scrolled .morph-rec {
+  top: -59%;
 }
 
 .morph-demo.is-after .morph-video {
@@ -876,6 +919,29 @@ section h2 {
     top: 85%;
     width: 94%;
     height: 15%;
+  }
+
+  /* .is-scrolled at this breakpoint: mobile's single stacked column (no
+     sidebar — see above) means ALL FOUR panes are literally one
+     continuous vertical stack, so all four shift by the same delta here,
+     not just video+desc+comments like the desktop two-column version.
+     Measured (not reused from desktop, a totally different aspect-ratio
+     and stack order): video's own before-state bottom comes out to
+     ~50.1% of the body height here, so a 52% shift clears it fully. */
+  .morph-demo.is-scrolled .morph-video {
+    top: -49%;
+  }
+
+  .morph-demo.is-scrolled .morph-desc {
+    top: 1%;
+  }
+
+  .morph-demo.is-scrolled .morph-rec {
+    top: 14%;
+  }
+
+  .morph-demo.is-scrolled .morph-comments {
+    top: 33%;
   }
 
   /* The "after" state's Recommended/Comments panes (sized as a fraction
