@@ -712,7 +712,7 @@ section h2 {
      property order (border-color, transform, box-shadow, opacity) — only
      opacity's entry is ever staggered per-card; border-color/transform/
      box-shadow always stay at 0s so a staggered reveal never also delays
-     the hover lift on cards 2-5 after the fact. */
+     the hover lift on the 2nd card after the fact. */
   transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.5s ease;
   transition-delay: 0s, 0s, 0s, 0s;
 }
@@ -721,16 +721,8 @@ section h2 {
   transition-delay: 0s, 0s, 0s, 60ms;
 }
 
-.feature-card:nth-child(3) {
-  transition-delay: 0s, 0s, 0s, 120ms;
-}
-
-.feature-card:nth-child(4) {
-  transition-delay: 0s, 0s, 0s, 180ms;
-}
-
 /* Big, faint background numeral — a common editorial/premium touch that
-   also just reads as "here are 5 distinct reasons," reinforcing the
+   also just reads as "here are N distinct reasons," reinforcing the
    section's own point at a glance. Low enough opacity to never compete
    with the real title/body text painted after it. */
 .feature-card::before {
