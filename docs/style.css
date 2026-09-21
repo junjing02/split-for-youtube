@@ -45,6 +45,10 @@ body {
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
+  /* The hero's decorative glow (below) deliberately bleeds past its own
+     box edges — clipping it horizontally here is cheaper and safer than
+     constraining its size precisely enough to never risk a scrollbar. */
+  overflow-x: hidden;
 }
 
 a {
@@ -114,12 +118,37 @@ img {
 /* Hero */
 
 .hero {
+  position: relative;
+  isolation: isolate;
   max-width: 1080px;
   margin: 0 auto;
   padding: 64px 24px 40px;
   display: grid;
   grid-template-columns: 1fr;
   gap: 40px;
+}
+
+/* A soft radial glow behind the headline — the one deliberately
+   decorative touch on an otherwise flat, minimal page. isolation:isolate
+   on .hero plus z-index here keeps it strictly behind the real content
+   instead of depending on paint-order luck. */
+.hero::before {
+  content: "";
+  position: absolute;
+  top: -120px;
+  left: 50%;
+  width: 900px;
+  height: 520px;
+  transform: translateX(-50%);
+  background: radial-gradient(ellipse at center, rgba(79, 70, 229, 0.16), transparent 70%);
+  z-index: 0;
+  pointer-events: none;
+}
+
+.hero-inner,
+.compare {
+  position: relative;
+  z-index: 1;
 }
 
 .hero-inner {
@@ -129,10 +158,10 @@ img {
 }
 
 .hero h1 {
-  font-size: clamp(28px, 5vw, 44px);
-  line-height: 1.15;
+  font-size: clamp(30px, 5vw, 48px);
+  line-height: 1.12;
   margin: 0 0 16px;
-  letter-spacing: -0.01em;
+  letter-spacing: -0.02em;
 }
 
 .subtitle {
@@ -150,27 +179,34 @@ img {
 
 .btn {
   display: inline-block;
-  padding: 11px 22px;
-  border-radius: 8px;
+  padding: 12px 24px;
+  border-radius: 10px;
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
-  transition: transform 0.15s ease, opacity 0.15s ease;
-}
-
-.btn:hover {
-  opacity: 0.9;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
 }
 
 .btn-primary {
   background: var(--accent);
   color: #ffffff;
+  box-shadow: 0 8px 20px -6px rgba(79, 70, 229, 0.5);
+}
+
+.btn-primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 12px 24px -6px rgba(79, 70, 229, 0.6);
 }
 
 .btn-secondary {
   background: var(--bg-raised);
   color: var(--text);
   border: 1px solid var(--border);
+}
+
+.btn-secondary:hover {
+  transform: translateY(-1px);
+  border-color: rgba(129, 140, 248, 0.5);
 }
 
 /* Before/after comparison: two static panels, stacked one above the other
@@ -234,7 +270,7 @@ img {
 .compare-window {
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  border-radius: 12px;
+  border-radius: 14px;
   overflow: hidden;
   box-shadow: var(--shadow);
   display: flex;
@@ -432,30 +468,40 @@ section h2 {
   padding: 56px 24px;
 }
 
+/* Flexbox, not grid — with 5 cards in 4-ish columns, a CSS Grid's last
+   row leaves its one orphan card pinned to the left edge of the row's
+   own (now mostly-empty) track, which reads as visibly off-center/
+   unbalanced. A wrapping flex row's justify-content: center instead
+   centers whatever's left on the last line, orphan included. */
 .feature-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 16px;
 }
 
 .feature-card {
+  flex: 1 1 230px;
+  max-width: 264px;
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  border-radius: 10px;
-  padding: 22px;
-  transition: border-color 0.2s ease, transform 0.2s ease;
+  border-radius: 14px;
+  padding: 24px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .feature-card:hover {
-  border-color: rgba(129, 140, 248, 0.4);
-  transform: translateY(-3px);
+  border-color: rgba(129, 140, 248, 0.45);
+  transform: translateY(-4px);
+  box-shadow: 0 16px 28px -12px rgba(79, 70, 229, 0.25);
 }
 
 .feature-icon {
-  width: 38px;
-  height: 38px;
-  border-radius: 9px;
-  background: rgba(79, 70, 229, 0.15);
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.2), rgba(129, 140, 248, 0.08));
   color: var(--accent-light);
   display: flex;
   align-items: center;
@@ -489,9 +535,10 @@ section h2 {
 .steps {
   background: var(--bg-raised);
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 14px;
   padding: 20px 20px 20px 40px;
   margin: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
 }
 
 .steps li {
