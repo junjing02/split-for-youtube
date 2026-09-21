@@ -1,11 +1,34 @@
+/* Light and dark, matched to the visitor's OS/browser preference
+   (prefers-color-scheme) — no manual toggle, so there's no extra UI
+   element or stored state to build/maintain, just these two token sets.
+   Light is the default (bare :root); dark redefines the same tokens
+   under the media query so every rule below just reads var(--x) once. */
 :root {
-  --bg: #0f0f0f;
-  --bg-raised: #181818;
-  --border: rgba(255, 255, 255, 0.1);
-  --text: #f1f1f1;
-  --text-dim: #aaaaaa;
+  --bg: #ffffff;
+  --bg-raised: #f6f6f8;
+  --nav-bg: rgba(255, 255, 255, 0.85);
+  --border: rgba(0, 0, 0, 0.1);
+  --line: rgba(0, 0, 0, 0.14);
+  --text: #18181b;
+  --text-dim: #63636b;
   --accent: #4f46e5;
-  --accent-light: #818cf8;
+  --accent-light: #4f46e5;
+  --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.2);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #0f0f0f;
+    --bg-raised: #181818;
+    --nav-bg: rgba(15, 15, 15, 0.85);
+    --border: rgba(255, 255, 255, 0.1);
+    --line: rgba(255, 255, 255, 0.14);
+    --text: #f1f1f1;
+    --text-dim: #aaaaaa;
+    --accent: #4f46e5;
+    --accent-light: #818cf8;
+    --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+  }
 }
 
 * {
@@ -38,7 +61,7 @@ img {
   position: sticky;
   top: 0;
   z-index: 10;
-  background: rgba(15, 15, 15, 0.85);
+  background: var(--nav-bg);
   backdrop-filter: blur(8px);
   border-bottom: 1px solid var(--border);
 }
@@ -213,7 +236,7 @@ img {
   border: 1px solid var(--border);
   border-radius: 12px;
   overflow: hidden;
-  box-shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
+  box-shadow: var(--shadow);
   display: flex;
   flex-direction: column;
 }
@@ -235,7 +258,7 @@ img {
   width: 9px;
   height: 9px;
   border-radius: 50%;
-  background: rgba(255, 255, 255, 0.15);
+  background: var(--line);
 }
 
 /* "Before": one narrow stacked column, like YouTube's plain watch page —
@@ -313,7 +336,7 @@ img {
 .stack-lines span {
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--line);
 }
 
 .stack-lines span.short {
@@ -375,7 +398,7 @@ img {
 .mock-line {
   height: 6px;
   border-radius: 3px;
-  background: rgba(255, 255, 255, 0.1);
+  background: var(--line);
 }
 
 /* Sections */
