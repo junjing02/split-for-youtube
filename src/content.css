@@ -7,6 +7,38 @@ html.yt-split-active body {
   overflow: hidden !important;
 }
 
+/* Theme tokens for our own wrapper elements. Written as var(--yt-spec-X,
+   fallback) throughout this file so they'd automatically match YouTube's
+   real theme colors — but reported (and reproduced) in light mode:
+   background stayed dark while text (native YouTube elements we don't
+   restyle, plus our own --yt-spec-text-secondary uses which DID resolve
+   correctly) rendered dark/black for light mode, i.e. black text on a
+   dark box. That split behavior — some --yt-spec-* tokens resolving,
+   background ones specifically not — points at YouTube only defining
+   --yt-spec-base-background/--yt-spec-general-background-a/
+   --yt-spec-10-percent-layer for dark theme, silently leaving them
+   undefined (not just differently-valued) in light mode, so our fallback
+   (written assuming dark) was what actually rendered. Centralizing them
+   here, keyed off the `dark` attribute YouTube itself sets on <html> only
+   for dark theme, fixes it regardless of whether the underlying var ever
+   resolves — every background/border rule below reads --split-* instead
+   of var(--yt-spec-*, ...) directly. */
+html.yt-split-active {
+  --split-bg: var(--yt-spec-base-background, #0f0f0f);
+  --split-bg-raised: var(--yt-spec-general-background-a, #212121);
+  --split-border: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  --split-border-strong: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25));
+  --split-text-dim: var(--yt-spec-text-secondary, #aaaaaa);
+}
+
+html.yt-split-active:not([dark]) {
+  --split-bg: #ffffff;
+  --split-bg-raised: #f9f9f9;
+  --split-border: rgba(0, 0, 0, 0.1);
+  --split-border-strong: rgba(0, 0, 0, 0.2);
+  --split-text-dim: #606060;
+}
+
 /* Full-bleed: #columns below is width: 100% of its own parent, but that
    parent (and its own ancestors) can themselves be capped/centered by
    YouTube's normal (non-theater) sizing — see spanFullWidth() in
@@ -41,7 +73,7 @@ html.yt-split-active #columns {
   padding: clamp(4px, 0.5vw, 6px) !important;
   gap: clamp(4px, 0.5vw, 6px);
   box-sizing: border-box !important;
-  background: var(--yt-spec-base-background, #0f0f0f) !important;
+  background: var(--split-bg) !important;
   align-items: stretch !important;
 }
 
@@ -191,11 +223,11 @@ html.yt-split-active #yt-split-resizer::after {
 }
 
 html.yt-split-active #yt-split-resizer:hover::after {
-  background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.2));
+  background: var(--split-border-strong);
 }
 
 body.yt-split-resizing html.yt-split-active #yt-split-resizer::after {
-  background: var(--yt-spec-text-secondary, #aaaaaa);
+  background: var(--split-text-dim);
 }
 
 body.yt-split-resizing {
@@ -239,11 +271,11 @@ html.yt-split-active #yt-split-vresizer::before {
 }
 
 html.yt-split-active #yt-split-vresizer:hover {
-  background: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.2));
+  background: var(--split-border-strong);
 }
 
 body.yt-split-resizing-v html.yt-split-active #yt-split-vresizer {
-  background: var(--yt-spec-text-secondary, #aaaaaa);
+  background: var(--split-text-dim);
 }
 
 body.yt-split-resizing-v {
@@ -275,8 +307,8 @@ html.yt-split-active #yt-split-desc-pane {
   order: 0;
   flex: 0 0 auto;
   width: 100%;
-  background: var(--yt-spec-general-background-a, #212121);
-  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  background: var(--split-bg-raised);
+  border: 1px solid var(--split-border);
   border-radius: 12px;
   box-sizing: border-box;
   overflow: hidden;
@@ -300,7 +332,7 @@ html.yt-split-active .yt-split-desc-header {
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--yt-spec-text-secondary, #aaaaaa);
+  color: var(--split-text-dim);
 }
 
 html.yt-split-active .yt-split-desc-header::after {
@@ -320,7 +352,7 @@ html.yt-split-active #yt-split-desc-body {
   transition: max-height 0.2s ease;
   scrollbar-gutter: stable both-edges;
   scrollbar-width: thin;
-  scrollbar-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25)) transparent;
+  scrollbar-color: var(--split-border-strong) transparent;
 }
 
 html.yt-split-active #yt-split-desc-pane.yt-split-desc-expanded #yt-split-desc-body {
@@ -334,7 +366,7 @@ html.yt-split-active #yt-split-desc-body::-webkit-scrollbar {
 }
 
 html.yt-split-active #yt-split-desc-body::-webkit-scrollbar-thumb {
-  background-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25));
+  background-color: var(--split-border-strong);
   border-radius: 4px;
 }
 
@@ -577,8 +609,8 @@ html.yt-split-active #yt-split-comments-pane {
   min-width: 0 !important;
   width: 100% !important;
   max-width: 100% !important;
-  background: var(--yt-spec-general-background-a, #212121) !important;
-  border: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)) !important;
+  background: var(--split-bg-raised) !important;
+  border: 1px solid var(--split-border) !important;
   border-radius: 12px !important;
   padding: 0 16px 16px !important;
   box-sizing: border-box !important;
@@ -586,7 +618,7 @@ html.yt-split-active #yt-split-comments-pane {
   overflow-x: hidden !important;
   scrollbar-gutter: stable both-edges;
   scrollbar-width: thin;
-  scrollbar-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25)) transparent;
+  scrollbar-color: var(--split-border-strong) transparent;
 }
 
 html.yt-split-active #secondary::-webkit-scrollbar,
@@ -596,7 +628,7 @@ html.yt-split-active #yt-split-comments-pane::-webkit-scrollbar {
 
 html.yt-split-active #secondary::-webkit-scrollbar-thumb,
 html.yt-split-active #yt-split-comments-pane::-webkit-scrollbar-thumb {
-  background-color: var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.25));
+  background-color: var(--split-border-strong);
   border-radius: 4px;
 }
 
@@ -618,13 +650,13 @@ html.yt-split-active .yt-split-pane-header:not(.yt-split-desc-header) {
      elsewhere, so the distance from each box's edge to its content starts
      the same everywhere. */
   padding: 16px 16px 10px;
-  background: var(--yt-spec-general-background-a, #212121);
-  border-bottom: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1));
+  background: var(--split-bg-raised);
+  border-bottom: 1px solid var(--split-border);
   font-size: 12px;
   font-weight: 600;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--yt-spec-text-secondary, #aaaaaa);
+  color: var(--split-text-dim);
 }
 
 /* Recommendations/comments are collapsible too, same idea as the
@@ -690,8 +722,8 @@ html.yt-shorts-split-active
   max-height: none !important;
   border-radius: 0 !important;
   box-shadow: none !important;
-  border-left: 1px solid var(--yt-spec-10-percent-layer, rgba(255, 255, 255, 0.1)) !important;
-  background: var(--yt-spec-base-background, #0f0f0f) !important;
+  border-left: 1px solid var(--split-border) !important;
+  background: var(--split-bg) !important;
 }
 
 html.yt-shorts-split-active tp-yt-iron-overlay-backdrop {
