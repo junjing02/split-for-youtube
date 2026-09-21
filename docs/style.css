@@ -360,6 +360,18 @@ img {
    height (top below), not pinned to the top with the leftover space only
    below it, matching #primary-inner's own `justify-content: center` in
    content.css. */
+/* "Before" is real (non-split) YouTube, not a single stacked column —
+   native YouTube is ALREADY a two-column layout at this window size: a
+   wide main column (video, then title/description, then comments) on the
+   left, and a narrower recommended-videos sidebar on the right, the whole
+   thing scrolling as one page. An earlier version of this mockup showed
+   everything (recommended included) crammed into one full-width column,
+   which isn't what youtube.com actually looks like at a spacious window
+   size and undersold the "before" state. Left column: 3%-63% (60% wide).
+   Right column (sidebar): 66%-97% (31% wide) — same 3%/97% edges as the
+   left column's own 3% margin, for a consistent outer gutter on both
+   sides and the bottom (see .morph-rec/.morph-comments below; touching
+   the mockup window's border was a reported bug). */
 .morph-video {
   aspect-ratio: 16 / 9;
   background: #000000;
@@ -367,9 +379,9 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  left: 13%;
+  left: 3%;
   top: 3%;
-  width: 74%;
+  width: 60%;
 }
 
 .morph-desc,
@@ -387,23 +399,28 @@ img {
 
 .morph-desc {
   left: 3%;
-  top: 74%;
-  width: 94%;
+  top: 62%;
+  width: 60%;
   height: 6%;
-}
-
-.morph-rec {
-  left: 3%;
-  top: 81%;
-  width: 94%;
-  height: 9.5%;
 }
 
 .morph-comments {
   left: 3%;
-  top: 91.5%;
-  width: 94%;
-  height: 8.5%;
+  top: 70%;
+  width: 60%;
+  height: 27%;
+}
+
+/* The recommended-videos sidebar — real YouTube's right column, not a
+   third stacked row. Tall enough for all 5 rows with room to spare
+   (rather than stretched to the full 94% down to the column's own
+   bottom margin), so it doesn't need padding tricks to avoid looking
+   like a wall of list items with nothing below it. */
+.morph-rec {
+  left: 66%;
+  top: 3%;
+  width: 31%;
+  height: 32%;
 }
 
 .morph-demo.is-after .morph-video {
@@ -462,31 +479,28 @@ img {
   align-items: center;
 }
 
-/* Description's line and each pane's FIRST item-row are always visible in
-   both states — the "before" pill panes are sized (above) to comfortably
-   fit exactly one row, so first paint (before any scroll/animation) shows
-   real content: a colored thumbnail/avatar plus text lines, not an empty
-   outline with just a header. Hiding all of it until "after" (an earlier
-   version of this) made the initial view look broken/unfinished, since a
-   visitor sees the "before" state first and the loop only starts a beat
-   after scrolling into view.
+/* Recommended is a real sidebar in BOTH states now (see .morph-rec above)
+   with room for all 5 rows either way, so it needs no hide/reveal at all
+   — every .item-row in it is just always visible.
 
-   Only the SECOND item-row in Recommended/Comments is opacity-hidden in
-   "before" (not display:none — display isn't transitionable, and
-   opacity:0 content overflowing the shorter "before" pane is harmless
-   since .morph-pane's own overflow:hidden clips something invisible
-   anyway), fading in once the "after" state's panes have mostly finished
-   growing — there just isn't room for two rows in the compact stacked
-   preview. Fades back out instantly (no delay) when shrinking back to
-   "before" so nothing lingers past its shrunk container. */
-.morph-rec .item-row + .item-row,
-.morph-comments .item-row + .item-row {
+   Comments is still a compact preview even in its taller "before" spot
+   (below the description, in the main column — see .morph-comments
+   above): its 3rd child onward (header=1st child, so item-rows 4+ =
+   :nth-child(n+5)) starts hidden and fades in once the "after" state's
+   pane has mostly finished growing, matching the same "no full preview
+   before, full content once it's the split layout" idea the description
+   line follows. Opacity-only (not display:none — display isn't
+   transitionable, and opacity:0 content overflowing the shorter "before"
+   pane is harmless since .morph-pane's own overflow:hidden clips
+   something invisible anyway). Fades back out instantly (no delay) when
+   shrinking back to "before" so nothing lingers past its shrunk
+   container. */
+.morph-comments .item-row:nth-child(n + 5) {
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
-.morph-demo.is-after .morph-rec .item-row + .item-row,
-.morph-demo.is-after .morph-comments .item-row + .item-row {
+.morph-demo.is-after .morph-comments .item-row:nth-child(n + 5) {
   opacity: 1;
   transition-delay: 0.35s;
 }
@@ -559,8 +573,7 @@ img {
 @media (prefers-reduced-motion: reduce) {
   .morph-pane,
   .morph-label span,
-  .morph-rec .item-row + .item-row,
-  .morph-comments .item-row + .item-row {
+  .morph-comments .item-row:nth-child(n + 5) {
     transition: none !important;
   }
 }
@@ -812,18 +825,35 @@ section h2 {
     top: 30%;
   }
 
+  /* Full-width stacked, NOT the desktop two-column (video+desc+comments
+     in a left column, Recommended as a right sidebar) — a phone-width
+     mockup box just doesn't have room to show a real sidebar at a
+     legible size, so this keeps the older single-column "before" story
+     at this breakpoint (still a fair simplification: real YouTube itself
+     eventually stacks fully at a narrow enough width too). Left/width
+     need to be set here explicitly now, not just top/height — the base
+     (desktop) rules above changed to the two-column left:66%/width:31%
+     sidebar position for .morph-rec, and left:3%/width:60% (left-column
+     width) for .morph-desc/.morph-comments, neither of which mobile
+     should inherit. */
   .morph-desc {
+    left: 3%;
     top: 53%;
+    width: 94%;
     height: 12%;
   }
 
   .morph-rec {
+    left: 3%;
     top: 66%;
+    width: 94%;
     height: 18%;
   }
 
   .morph-comments {
+    left: 3%;
     top: 85%;
+    width: 94%;
     height: 15%;
   }
 
