@@ -467,6 +467,42 @@ html.yt-split-active #below ytd-subscribe-button-renderer {
   display: none !important;
 }
 
+/* Like button icon rendered visibly bigger/bolder and slightly
+   off-position compared to the dislike icon right next to it. Confirmed
+   via inspecting the live element: unlike dislike (presumably a plain
+   static icon), the like icon is a Lottie-ANIMATED icon (yt-animated-icon
+   / ytd-lottie-player, animated-icon-type="CUSTOM_LIKE" — YouTube's fun
+   bounce animation on click). Lottie players commonly size themselves by
+   measuring their container in JS; if that measurement runs before our
+   layout finishes moving/resizing #below into the narrow side pane, the
+   icon can end up rendered at a stale size that no longer matches its own
+   yt-icon wrapper's intended 24px box (which the dislike icon, presumably
+   pure CSS with no JS measurement step, isn't vulnerable to). Forcing
+   explicit sizing with !important down the whole chain — svg's own
+   attribute width/height (48) and inline width:100%/height:100% aren't
+   !important, so a plain CSS override here beats them regardless of what
+   JS measured. */
+html.yt-split-active #below yt-icon {
+  width: 20px !important;
+  height: 20px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+html.yt-split-active #below yt-animated-icon,
+html.yt-split-active #below ytd-lottie-player,
+html.yt-split-active #below lottie-component {
+  display: block !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+html.yt-split-active #below yt-icon svg {
+  width: 100% !important;
+  height: 100% !important;
+}
+
 /* Shared look for recommendations/chat + comments. Undragged, they split
    whatever height is left after the description section above them 50/50
    (flex-basis defaults to the CSS var's "50%" fallback); dragging the
