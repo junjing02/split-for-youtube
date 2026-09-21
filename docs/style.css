@@ -161,13 +161,39 @@ img {
 .compare {
   width: 100%;
   display: flex;
+  /* Row (side by side) only above a wide-enough breakpoint — see the
+     media query below for why 1080px specifically. Below it, column
+     (stacked) by default so each mockup still gets a full-width column
+     instead of a cramped half-width one. */
   flex-direction: column;
-  gap: 28px;
-  max-width: 780px;
+  align-items: flex-start;
+  gap: 24px;
+  max-width: 1040px;
   margin: 0 auto;
 }
 
+/* Side by side needs roughly DOUBLE the per-window width budget that
+   stacked does (each of two columns vs. one full-width column) — measured
+   empirically (not guessed) that the "Recommended"/"Comments" cards'
+   content starts overflowing below about a 490px column width, which a
+   two-column row only clears once the viewport itself is roughly this
+   wide. Below this, stacking keeps a SINGLE column comfortably wide
+   enough for the same content with no compaction needed at all. */
+@media (min-width: 1080px) {
+  .compare {
+    flex-direction: row;
+  }
+}
+
 .compare-col {
+  flex: 1;
+  /* width:100% alongside flex:1 — belt and suspenders. A flex child with
+     align-items:stretch (default) should already get a definite cross-
+     size for free, but an aspect-ratio box (.compare-window-landscape)
+     inside one asymmetrically didn't in real testing, same underlying
+     flavor of issue as .compare's own width fix above. */
+  width: 100%;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
@@ -220,8 +246,8 @@ img {
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 10px;
-  padding: 14px;
+  gap: 8px;
+  padding: 12px;
 }
 
 .stack-video {
@@ -234,31 +260,60 @@ img {
   justify-content: center;
 }
 
-.stack-row {
+.stack-row,
+.item-row {
   display: flex;
-  gap: 10px;
+  gap: 8px;
   align-items: center;
 }
 
 .stack-thumb {
-  width: 64px;
-  height: 40px;
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.08);
+  width: 46px;
+  height: 28px;
+  border-radius: 5px;
   flex-shrink: 0;
+}
+
+.avatar {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+/* Muted color placeholders instead of plain gray boxes — thumbnails and
+   avatars are the one part of a real YouTube page that actually has
+   color, so giving these mockups a little of that (while keeping text
+   lines neutral gray, matching real metadata text) reads as more like an
+   actual page and less like a wireframe. */
+.thumb-amber {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.55), rgba(217, 119, 6, 0.3));
+}
+
+.thumb-rose {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.55), rgba(190, 24, 93, 0.3));
+}
+
+.thumb-cyan {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.55), rgba(8, 145, 178, 0.3));
+}
+
+.thumb-emerald {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.55), rgba(5, 150, 105, 0.3));
 }
 
 .stack-lines {
   flex: 1;
+  min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 5px;
 }
 
 .stack-lines span {
-  height: 7px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .stack-lines span.short {
@@ -266,14 +321,13 @@ img {
 }
 
 /* "After": the split layout — video left, resizable stack on the right. */
-/* "After": the split layout — video left, resizable stack on the right. */
 .split-body {
   flex: 1;
   min-height: 0;
   display: grid;
   grid-template-columns: 1.6fr 1fr;
   gap: 10px;
-  padding: 14px;
+  padding: 12px;
 }
 
 .mock-video {
@@ -293,7 +347,7 @@ img {
 .mock-side {
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 6px;
   min-width: 0;
 }
 
@@ -301,15 +355,17 @@ img {
   background: var(--bg);
   border: 1px solid var(--border);
   border-radius: 8px;
-  padding: 10px 12px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
 }
 
 .mock-row-header {
-  font-size: 11px;
+  font-size: 10px;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   color: var(--text-dim);
-  margin-bottom: 8px;
 }
 
 .mock-row-tall {
@@ -317,14 +373,9 @@ img {
 }
 
 .mock-line {
-  height: 8px;
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.08);
-  margin-bottom: 6px;
-}
-
-.mock-line.short {
-  width: 60%;
+  height: 6px;
+  border-radius: 3px;
+  background: rgba(255, 255, 255, 0.1);
 }
 
 /* Sections */
@@ -444,38 +495,40 @@ section h2 {
 
 @media (max-width: 640px) {
   /* The mockup windows keep their 16:9 landscape shape at any width, but
-     fixed-px padding/gaps/lines inside them don't shrink along with a
+     fixed-px padding/gaps/content inside them don't shrink along with a
      narrower container the way the aspect-ratio box itself does — without
-     trimming those down too, content that fit fine at desktop width
-     overflows and gets clipped by the window's overflow:hidden at phone
-     width. Dropping the placeholder lines (keeping just each card's
-     header label) is what actually buys back most of the room; the rest
-     just tightens padding/gaps proportionally. */
+     trimming those down too, content that fit fine at the wider, side-by-
+     side desktop size overflows and gets clipped by the window's
+     overflow:hidden at phone width. Dropping the second item-row (thumb/
+     avatar + text) in Recommended/Comments is what actually buys back
+     most of the room; the rest just tightens padding/gaps further. */
+  .item-row + .item-row {
+    display: none;
+  }
+
   .stack-thumb {
-    width: 48px;
-    height: 30px;
+    width: 40px;
+    height: 24px;
+  }
+
+  .avatar {
+    width: 16px;
+    height: 16px;
   }
 
   .split-body,
   .stack-body {
-    padding: 10px;
-    gap: 6px;
+    padding: 8px;
+    gap: 5px;
   }
 
   .mock-side {
-    gap: 6px;
+    gap: 5px;
   }
 
   .mock-row {
-    padding: 6px 10px;
-  }
-
-  .mock-row-header {
-    margin-bottom: 0;
-  }
-
-  .mock-row-tall .mock-line {
-    display: none;
+    padding: 5px 8px;
+    gap: 4px;
   }
 
   .nav nav {
