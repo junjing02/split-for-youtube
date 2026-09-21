@@ -6,6 +6,8 @@
   <title>Split for YouTube</title>
   <meta name="description" content="A Chrome extension that splits the YouTube watch page into a resizable two-column layout — video on the left, description, recommendations, and comments on the right." />
   <link rel="icon" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
@@ -26,7 +28,7 @@
   <main>
     <section id="top" class="hero">
       <div class="hero-inner">
-        <h1>Watch and read at the same time.</h1>
+        <h1>Watch <span class="grad-text">and read</span> at the same time.</h1>
         <p class="subtitle">
           Split for YouTube turns the watch page into a clean two-column layout —
           video on the left, description, recommendations, and comments on the right.
@@ -37,62 +39,41 @@
         </div>
       </div>
 
-      <div class="compare">
-        <div class="compare-col">
-          <span class="compare-label">Before</span>
-          <div class="compare-window compare-window-landscape">
-            <div class="compare-dots"><span></span><span></span><span></span></div>
-            <div class="stack-body">
-              <div class="stack-video">
-                <div class="mock-play">▶</div>
-              </div>
-              <div class="stack-row">
-                <div class="stack-thumb thumb-amber"></div>
+      <div class="morph-demo" id="morphDemo">
+        <div class="morph-label" aria-hidden="true">
+          <span class="morph-label-before">Before</span>
+          <span class="morph-label-after">After</span>
+        </div>
+        <div class="compare-window compare-window-landscape">
+          <div class="compare-dots"><span></span><span></span><span></span></div>
+          <div class="morph-body">
+            <div class="morph-pane morph-video">
+              <div class="mock-play">▶</div>
+            </div>
+            <div class="morph-pane morph-desc">
+              <div class="mock-row-header">Description</div>
+              <div class="mock-line"></div>
+            </div>
+            <div class="morph-pane morph-rec">
+              <div class="mock-row-header">Recommended</div>
+              <div class="item-row">
+                <div class="stack-thumb thumb-rose"></div>
                 <div class="stack-lines"><span></span><span class="short"></span></div>
               </div>
-              <div class="stack-row">
-                <div class="stack-thumb thumb-cyan"></div>
+              <div class="item-row">
+                <div class="stack-thumb thumb-emerald"></div>
                 <div class="stack-lines"><span></span><span class="short"></span></div>
               </div>
             </div>
-          </div>
-        </div>
-
-        <div class="compare-col">
-          <span class="compare-label">After</span>
-          <div class="compare-window compare-window-landscape">
-            <div class="compare-dots"><span></span><span></span><span></span></div>
-            <div class="split-body">
-              <div class="mock-video">
-                <div class="mock-play">▶</div>
+            <div class="morph-pane morph-comments">
+              <div class="mock-row-header">Comments</div>
+              <div class="item-row">
+                <div class="avatar thumb-cyan"></div>
+                <div class="stack-lines"><span></span><span class="short"></span></div>
               </div>
-              <div class="mock-side">
-                <div class="mock-row">
-                  <div class="mock-row-header">Description</div>
-                  <div class="mock-line"></div>
-                </div>
-                <div class="mock-row mock-row-tall">
-                  <div class="mock-row-header">Recommended</div>
-                  <div class="item-row">
-                    <div class="stack-thumb thumb-rose"></div>
-                    <div class="stack-lines"><span></span><span class="short"></span></div>
-                  </div>
-                  <div class="item-row">
-                    <div class="stack-thumb thumb-emerald"></div>
-                    <div class="stack-lines"><span></span><span class="short"></span></div>
-                  </div>
-                </div>
-                <div class="mock-row mock-row-tall">
-                  <div class="mock-row-header">Comments</div>
-                  <div class="item-row">
-                    <div class="avatar thumb-cyan"></div>
-                    <div class="stack-lines"><span></span><span class="short"></span></div>
-                  </div>
-                  <div class="item-row">
-                    <div class="avatar thumb-amber"></div>
-                    <div class="stack-lines"><span></span><span class="short"></span></div>
-                  </div>
-                </div>
+              <div class="item-row">
+                <div class="avatar thumb-amber"></div>
+                <div class="stack-lines"><span></span><span class="short"></span></div>
               </div>
             </div>
           </div>

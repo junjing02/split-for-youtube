@@ -9,11 +9,15 @@
   --nav-bg: rgba(255, 255, 255, 0.85);
   --border: rgba(0, 0, 0, 0.1);
   --line: rgba(0, 0, 0, 0.14);
+  --dot: rgba(0, 0, 0, 0.08);
   --text: #18181b;
   --text-dim: #63636b;
   --accent: #4f46e5;
+  --accent-2: #8b5cf6;
+  --accent-3: #ec4899;
   --accent-light: #4f46e5;
   --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.2);
+  --font-display: "Space Grotesk", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -23,9 +27,12 @@
     --nav-bg: rgba(15, 15, 15, 0.85);
     --border: rgba(255, 255, 255, 0.1);
     --line: rgba(255, 255, 255, 0.14);
+    --dot: rgba(255, 255, 255, 0.09);
     --text: #f1f1f1;
     --text-dim: #aaaaaa;
     --accent: #4f46e5;
+    --accent-2: #a78bfa;
+    --accent-3: #f472b6;
     --accent-light: #818cf8;
     --shadow: 0 30px 60px -30px rgba(0, 0, 0, 0.6);
   }
@@ -41,7 +48,11 @@ html {
 
 body {
   margin: 0;
-  background: var(--bg);
+  background-color: var(--bg);
+  /* Subtle dot-grid texture across the whole page — a faint 1px dot every
+     24px, low-opacity enough to read as texture, not pattern. */
+  background-image: radial-gradient(var(--dot) 1px, transparent 1px);
+  background-size: 24px 24px;
   color: var(--text);
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
@@ -84,8 +95,9 @@ img {
   align-items: center;
   gap: 10px;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 15px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 16px;
 }
 
 .brand img {
@@ -128,25 +140,27 @@ img {
   gap: 40px;
 }
 
-/* A soft radial glow behind the headline — the one deliberately
-   decorative touch on an otherwise flat, minimal page. isolation:isolate
-   on .hero plus z-index here keeps it strictly behind the real content
+/* A soft two-hue glow behind the headline — a mesh-gradient-style touch
+   (indigo + violet, slightly offset) instead of one flat radial, for a
+   bit more visual richness while staying subtle. isolation:isolate on
+   .hero plus z-index here keeps it strictly behind the real content
    instead of depending on paint-order luck. */
 .hero::before {
   content: "";
   position: absolute;
-  top: -120px;
+  top: -140px;
   left: 50%;
-  width: 900px;
-  height: 520px;
+  width: 1000px;
+  height: 560px;
   transform: translateX(-50%);
-  background: radial-gradient(ellipse at center, rgba(79, 70, 229, 0.16), transparent 70%);
+  background: radial-gradient(ellipse 480px 320px at 38% 35%, rgba(79, 70, 229, 0.18), transparent 65%),
+    radial-gradient(ellipse 480px 320px at 64% 45%, rgba(236, 72, 153, 0.12), transparent 65%);
   z-index: 0;
   pointer-events: none;
 }
 
 .hero-inner,
-.compare {
+.morph-demo {
   position: relative;
   z-index: 1;
 }
@@ -158,10 +172,19 @@ img {
 }
 
 .hero h1 {
-  font-size: clamp(30px, 5vw, 48px);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: clamp(32px, 5.5vw, 52px);
   line-height: 1.12;
   margin: 0 0 16px;
   letter-spacing: -0.02em;
+}
+
+.grad-text {
+  background: linear-gradient(100deg, var(--accent), var(--accent-2) 55%, var(--accent-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }
 
 .subtitle {
@@ -209,62 +232,64 @@ img {
   border-color: rgba(129, 140, 248, 0.5);
 }
 
-/* Before/after comparison: two static panels, stacked one above the other
-   — deliberately not an interactive drag slider (see git history: an
-   earlier draggable version broke when actually deployed and wasn't worth
-   chasing down). Each mockup is a landscape browser-window shape (a real
-   16:9-ish wide window, not a near-square box) since the extension only
-   activates on a landscape window in the first place — the demo should
-   look like the actual thing it's demonstrating. */
+/* Before/after comparison: ONE mockup window that morphs live between
+   YouTube's normal stacked layout and the split layout, instead of two
+   static boxes side by side — shows the actual panes (video/description/
+   recommended/comments) sliding and resizing into their new positions,
+   which tells the "what this does" story far more directly than a static
+   before/after ever could.
 
-.compare {
+   Deliberately NOT the earlier draggable-slider approach (see git
+   history — it broke when actually deployed and wasn't worth chasing
+   down further). This is simpler and more robust by construction: every
+   .morph-pane is a plain absolutely-positioned box animating its own
+   left/top/width/height as PERCENTAGES between two hardcoded states
+   (default = "before", .is-after = "after") — no custom properties, no
+   clip-path, no aspect-ratio interacting with anything animated. Percent-
+   based top/left/width/height transitions are well-supported and directly
+   verified working (see the Playwright screenshots taken while building
+   this), unlike the --pos/clip-path combination that broke last time. */
+
+.morph-demo {
+  /* width:100% — a grid/flex child inside .hero has repeatedly (twice
+     now, see git history on .compare/.compare-col) not reliably gotten a
+     definite width from stretch alone in real-browser testing; explicit
+     width:100% avoids depending on that again. */
   width: 100%;
-  display: flex;
-  /* Row (side by side) only above a wide-enough breakpoint — see the
-     media query below for why 1080px specifically. Below it, column
-     (stacked) by default so each mockup still gets a full-width column
-     instead of a cramped half-width one. */
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 24px;
-  max-width: 1040px;
+  max-width: 720px;
   margin: 0 auto;
 }
 
-/* Side by side needs roughly DOUBLE the per-window width budget that
-   stacked does (each of two columns vs. one full-width column) — measured
-   empirically (not guessed) that the "Recommended"/"Comments" cards'
-   content starts overflowing below about a 490px column width, which a
-   two-column row only clears once the viewport itself is roughly this
-   wide. Below this, stacking keeps a SINGLE column comfortably wide
-   enough for the same content with no compaction needed at all. */
-@media (min-width: 1080px) {
-  .compare {
-    flex-direction: row;
-  }
+.morph-label {
+  position: relative;
+  height: 16px;
+  margin-bottom: 10px;
+  text-align: center;
 }
 
-.compare-col {
-  flex: 1;
-  /* width:100% alongside flex:1 — belt and suspenders. A flex child with
-     align-items:stretch (default) should already get a definite cross-
-     size for free, but an aspect-ratio box (.compare-window-landscape)
-     inside one asymmetrically didn't in real testing, same underlying
-     flavor of issue as .compare's own width fix above. */
-  width: 100%;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.compare-label {
+.morph-label span {
+  position: absolute;
+  left: 50%;
+  top: 0;
+  transform: translateX(-50%);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-dim);
-  text-align: center;
+  transition: opacity 0.4s ease;
+}
+
+.morph-label-after {
+  opacity: 0;
+}
+
+.morph-demo.is-after .morph-label-before {
+  opacity: 0;
+}
+
+.morph-demo.is-after .morph-label-after {
+  opacity: 1;
 }
 
 .compare-window {
@@ -297,33 +322,134 @@ img {
   background: var(--line);
 }
 
-/* "Before": one narrow stacked column, like YouTube's plain watch page —
-   video on top, then every recommendation as a full-width row underneath,
-   scrolling forever with no resizing. */
-.stack-body {
+.morph-body {
+  position: relative;
   flex: 1;
   min-height: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  padding: 12px;
 }
 
-.stack-video {
+.morph-pane {
+  position: absolute;
+  transition: left 0.85s cubic-bezier(0.65, 0, 0.35, 1), top 0.85s cubic-bezier(0.65, 0, 0.35, 1),
+    width 0.85s cubic-bezier(0.65, 0, 0.35, 1), height 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+}
+
+.morph-video {
   background: #000000;
   border-radius: 8px;
-  flex: 2;
-  min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
+  left: 3%;
+  top: 5%;
+  width: 94%;
+  height: 37%;
 }
 
-.stack-row,
+.morph-desc,
+.morph-rec,
+.morph-comments {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow: hidden;
+}
+
+.morph-desc {
+  left: 3%;
+  top: 45%;
+  width: 94%;
+  height: 14%;
+}
+
+.morph-rec {
+  left: 3%;
+  top: 62%;
+  width: 94%;
+  height: 17%;
+}
+
+.morph-comments {
+  left: 3%;
+  top: 82%;
+  width: 94%;
+  height: 17%;
+}
+
+.morph-demo.is-after .morph-video {
+  left: 3%;
+  top: 5%;
+  width: 58%;
+  height: 90%;
+}
+
+.morph-demo.is-after .morph-desc {
+  left: 64%;
+  top: 5%;
+  width: 33%;
+  height: 15%;
+}
+
+.morph-demo.is-after .morph-rec {
+  left: 64%;
+  top: 23%;
+  width: 33%;
+  height: 33%;
+}
+
+.morph-demo.is-after .morph-comments {
+  left: 64%;
+  top: 59%;
+  width: 33%;
+  height: 36%;
+}
+
+.mock-play {
+  color: var(--accent-light);
+  font-size: 28px;
+  opacity: 0.8;
+}
+
+.mock-row-header {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-dim);
+}
+
+.mock-line {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--line);
+}
+
 .item-row {
   display: flex;
   gap: 8px;
   align-items: center;
+}
+
+/* Second item-row in Recommended/Comments: hidden (opacity-only, so
+   .morph-body's overflow:hidden — inherited via .morph-pane's own
+   overflow:hidden — keeps it from ever visibly overflowing the much
+   shorter "before" pane) until the "after" state, where it fades in once
+   the pane has mostly finished growing. Fades back out instantly (no
+   delay) when shrinking back to "before" so it can't linger past its
+   shrunk container. */
+.morph-rec .item-row + .item-row,
+.morph-comments .item-row + .item-row {
+  opacity: 0;
+  transition: opacity 0.35s ease;
+}
+
+.morph-demo.is-after .morph-rec .item-row + .item-row,
+.morph-demo.is-after .morph-comments .item-row + .item-row {
+  opacity: 1;
+  transition-delay: 0.35s;
 }
 
 .stack-thumb {
@@ -379,68 +505,22 @@ img {
   width: 55%;
 }
 
-/* "After": the split layout — video left, resizable stack on the right. */
-.split-body {
-  flex: 1;
-  min-height: 0;
-  display: grid;
-  grid-template-columns: 1.6fr 1fr;
-  gap: 10px;
-  padding: 12px;
-}
-
-.mock-video {
-  background: #000000;
-  border-radius: 8px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.mock-play {
-  color: var(--accent-light);
-  font-size: 28px;
-  opacity: 0.8;
-}
-
-.mock-side {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-}
-
-.mock-row {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  display: flex;
-  flex-direction: column;
-  gap: 5px;
-}
-
-.mock-row-header {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-}
-
-.mock-row-tall {
-  flex: 1;
-}
-
-.mock-line {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line);
+@media (prefers-reduced-motion: reduce) {
+  .morph-pane,
+  .morph-label span,
+  .morph-rec .item-row + .item-row,
+  .morph-comments .item-row + .item-row {
+    transition: none !important;
+  }
 }
 
 /* Sections */
 
 section h2 {
-  font-size: 26px;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 28px;
+  letter-spacing: -0.01em;
   margin: 0 0 8px;
   text-align: center;
 }
@@ -478,9 +558,16 @@ section h2 {
   flex-wrap: wrap;
   justify-content: center;
   gap: 16px;
+  /* Each card gets an automatic 01/02/03... via counter() below — no need
+     to hardcode a number per card in the HTML, so reordering/adding cards
+     never risks the numbers getting out of sync. */
+  counter-reset: feature;
 }
 
 .feature-card {
+  counter-increment: feature;
+  position: relative;
+  overflow: hidden;
   flex: 1 1 230px;
   max-width: 264px;
   background: var(--bg-raised);
@@ -488,7 +575,70 @@ section h2 {
   border-radius: 14px;
   padding: 24px;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
-  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  /* opacity included here (not just on .reveal) so the scroll-reveal
+     fade-in and the hover lift/shadow share one transition declaration —
+     giving .reveal its own separate `transition` would just overwrite
+     this whole property for any element that has both classes, since
+     same-specificity rules don't merge shorthand values across rules.
+     transition-delay below is a per-property LIST matching this exact
+     property order (border-color, transform, box-shadow, opacity) — only
+     opacity's entry is ever staggered per-card; border-color/transform/
+     box-shadow always stay at 0s so a staggered reveal never also delays
+     the hover lift on cards 2-5 after the fact. */
+  transition: border-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease, opacity 0.5s ease;
+  transition-delay: 0s, 0s, 0s, 0s;
+}
+
+.feature-card:nth-child(2) {
+  transition-delay: 0s, 0s, 0s, 60ms;
+}
+
+.feature-card:nth-child(3) {
+  transition-delay: 0s, 0s, 0s, 120ms;
+}
+
+.feature-card:nth-child(4) {
+  transition-delay: 0s, 0s, 0s, 180ms;
+}
+
+.feature-card:nth-child(5) {
+  transition-delay: 0s, 0s, 0s, 240ms;
+}
+
+/* Big, faint background numeral — a common editorial/premium touch that
+   also just reads as "here are 5 distinct reasons," reinforcing the
+   section's own point at a glance. Low enough opacity to never compete
+   with the real title/body text painted after it. */
+.feature-card::before {
+  content: counter(feature, decimal-leading-zero);
+  position: absolute;
+  top: -6px;
+  right: 10px;
+  font-family: var(--font-display);
+  font-size: 56px;
+  font-weight: 700;
+  color: var(--accent);
+  opacity: 0.07;
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Cursor-follow spotlight (script.js updates --mx/--my on mousemove) —
+   pure decoration: with no JS, or before the first mousemove, --mx/--my
+   are simply unset and the gradient falls back to the card's own center,
+   so there's no broken/half-finished state to worry about. */
+.feature-card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(220px circle at var(--mx, 50%) var(--my, 50%), rgba(79, 70, 229, 0.14), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.feature-card:hover::after {
+  opacity: 1;
 }
 
 .feature-card:hover {
@@ -576,15 +726,29 @@ section h2 {
 }
 
 @media (max-width: 640px) {
-  /* The mockup windows keep their 16:9 landscape shape at any width, but
-     fixed-px padding/gaps/content inside them don't shrink along with a
+  /* The mockup window keeps its 16:9 landscape shape at any width, but
+     fixed-px padding/gaps/content inside it don't shrink along with a
      narrower container the way the aspect-ratio box itself does — without
-     trimming those down too, content that fit fine at the wider, side-by-
-     side desktop size overflows and gets clipped by the window's
-     overflow:hidden at phone width. Dropping the second item-row (thumb/
-     avatar + text) in Recommended/Comments is what actually buys back
-     most of the room; the rest just tightens padding/gaps further. */
-  .item-row + .item-row {
+     trimming those down too, content that fit fine at desktop size
+     overflows and gets clipped by .morph-pane's own overflow:hidden at
+     phone width. Permanently hiding the second item-row (not just fading
+     it in later, as the "after" state does at wider widths) is what
+     actually buys back most of the room; the rest just tightens
+     padding/gaps further. */
+  .morph-rec .item-row + .item-row,
+  .morph-comments .item-row + .item-row {
+    display: none;
+  }
+
+  /* The "before" state's panes are noticeably shorter than "after"'s (all
+     4 panes share one small stacked column vs. 3 panes sharing a whole
+     side column) — even the single remaining item-row overflows at phone
+     width there specifically (measured, not assumed). Hiding it only in
+     "before" turns the reveal into part of the story: no preview before,
+     real thumbnails once it becomes the split layout. */
+  .morph-demo:not(.is-after) .morph-desc .mock-line,
+  .morph-demo:not(.is-after) .morph-rec .item-row,
+  .morph-demo:not(.is-after) .morph-comments .item-row {
     display: none;
   }
 
@@ -598,17 +762,9 @@ section h2 {
     height: 16px;
   }
 
-  .split-body,
-  .stack-body {
-    padding: 8px;
-    gap: 5px;
-  }
-
-  .mock-side {
-    gap: 5px;
-  }
-
-  .mock-row {
+  .morph-desc,
+  .morph-rec,
+  .morph-comments {
     padding: 5px 8px;
     gap: 4px;
   }
