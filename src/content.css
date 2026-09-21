@@ -469,40 +469,33 @@ html.yt-split-active #below ytd-subscribe-button-renderer {
 
 /* Like button icon rendered visibly bigger and off-position compared to
    the dislike icon right next to it. Confirmed by comparing the two
-   buttons' actual live outerHTML directly: dislike is a plain static icon
-   — <span class="ytIconWrapperHost"> (24x24) wrapping a
-   <svg viewBox="0 0 24 24" width="24" height="24">, a 1:1 match, nothing
-   to go wrong. Like is a Lottie-ANIMATED icon (YouTube's bounce animation
-   on click) — <yt-icon> (24x24) wrapping yt-animated-icon >
-   ytd-lottie-player > lottie-component >
-   <svg viewBox="0 0 48 48" width="48" height="48">. The svg's own native
-   size is literally DOUBLE its wrapper's declared 24x24 box; if any link
-   in that longer chain isn't correctly constrained down to 24x24, the
-   svg's width:100%/height:100% resolves against ITS OWN 48x48 intrinsic
-   size instead, rendering at double the intended size — exactly the
-   reported symptom (a first attempt at this fix targeted the wrong
-   wrapper — yt-icon only, which dislike doesn't use, so it couldn't have
-   been what needed fixing — at the wrong size, 20px instead of 24px;
-   replaced here with both wrappers and the correct size). Neither the
-   svg's width/height ATTRIBUTES nor its inline width:100%/height:100%
-   STYLE are !important, so a plain CSS override still beats them. */
-html.yt-split-active #below yt-icon,
-html.yt-split-active #below .ytIconWrapperHost {
-  width: 24px !important;
-  height: 24px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-}
-
-html.yt-split-active #below yt-animated-icon,
-html.yt-split-active #below ytd-lottie-player,
-html.yt-split-active #below lottie-component,
-html.yt-split-active #below yt-icon svg,
-html.yt-split-active #below .ytIconWrapperHost svg {
-  display: block !important;
-  width: 100% !important;
-  height: 100% !important;
+   buttons' actual live outerHTML directly, AND confirmed the like/dislike
+   row is genuinely inside #below (full #below dump provided) — so this
+   isn't a wrong-scope problem. Dislike is a plain static icon:
+   <span class="ytIconWrapperHost"> (24x24) wrapping
+   <svg viewBox="0 0 24 24" width="24" height="24">, a 1:1 match. Like is a
+   Lottie-ANIMATED icon (YouTube's bounce animation on click):
+   <yt-icon> (24x24) wrapping yt-animated-icon > ytd-lottie-player >
+   lottie-component > <svg viewBox="0 0 48 48" width="48" height="48"> —
+   the svg's own native size is literally DOUBLE its wrapper's declared
+   box. Two earlier attempts tried forcing width/height down through that
+   whole custom-element chain (yt-icon > yt-animated-icon >
+   ytd-lottie-player > lottie-component > svg) with !important — confirmed
+   NOT to work even after a proper extension reload, meaning something in
+   that chain is winning the cascade regardless (plausibly YouTube's own
+   more-specific rule for one of these custom elements, or one of them
+   just doesn't respect width/height as a non-replaced inline element
+   despite the display override). Switched to transform: scale(0.5)
+   instead — sidesteps that whole layout-cascade question entirely, since
+   it scales whatever FINAL rendered pixels exist (48px worth) down to
+   match the 24px box regardless of why they were 48px in the first place.
+   :has(yt-animated-icon) scopes this to ONLY the Lottie-wrapping yt-icon
+   (the like button's) — #below has several other, unrelated yt-icon
+   elements (chevrons, the "more actions" button, summary icons) that are
+   plain/static like dislike and must not be touched. */
+html.yt-split-active #below yt-icon:has(yt-animated-icon) {
+  transform: scale(0.5);
+  transform-origin: center;
 }
 
 /* Shared look for recommendations/chat + comments. Undragged, they split
