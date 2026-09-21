@@ -57,16 +57,72 @@ if (morphDemo) {
     let loopTimer = null;
     // classes: what .morph-demo should have during this phase (besides
     // none, which is the plain "before" state). hold: how long to stay on
-    // this phase before advancing to the next one.
+    // this phase before advancing to the next one — "after" holds much
+    // longer than the others specifically to leave room for the pane
+    // auto-scroll cycle below to actually play out.
     const PHASES = [
       { classes: [], hold: 1400 },
       { classes: ["is-scrolled"], hold: 1500 },
-      { classes: ["is-after"], hold: 2600 },
+      { classes: ["is-after"], hold: 6200 },
     ];
+
+    // Recommended/Comments auto-scroll: once the "after" state's panes
+    // have (mostly) finished resizing, scroll each .morph-scroll-list to
+    // its bottom and back, demonstrating that these panes scroll
+    // independently while the video stays put — the actual point of the
+    // whole demo, worth showing directly rather than leaving the panes
+    // static once split. Plain scrollTop + scroll-behavior:smooth (CSS)
+    // rather than a CSS keyframe animation, since the scrollable distance
+    // depends on real content height vs. the pane's rendered size —
+    // something only the browser's own layout can measure, not a
+    // percentage guessed up front.
+    let scrollCancels = [];
+    function stopPaneAutoScroll() {
+      scrollCancels.forEach((cancel) => cancel());
+      scrollCancels = [];
+      document.querySelectorAll(".morph-scroll-list").forEach((el) => {
+        el.scrollTop = 0;
+      });
+    }
+    function startPaneAutoScroll(el) {
+      let cancelled = false;
+      function cycle() {
+        if (cancelled) return;
+        const max = el.scrollHeight - el.clientHeight;
+        if (max <= 0) {
+          return; // nothing to scroll — every row already fits
+        }
+        el.scrollTo({ top: max, behavior: "smooth" });
+        setTimeout(() => {
+          if (cancelled) return;
+          el.scrollTo({ top: 0, behavior: "smooth" });
+          setTimeout(() => {
+            if (!cancelled) cycle();
+          }, 1900);
+        }, 1900);
+      }
+      cycle();
+      return () => {
+        cancelled = true;
+      };
+    }
+
     let phaseIndex = 0;
     function applyPhase(i) {
       morphDemo.classList.remove("is-scrolled", "is-after");
+      stopPaneAutoScroll();
       PHASES[i].classes.forEach((c) => morphDemo.classList.add(c));
+      if (PHASES[i].classes.includes("is-after")) {
+        // Waits out the panes' own 0.85s resize transition (see
+        // .morph-pane in style.css) so scrolling only starts once each
+        // pane is actually at its final "after" size.
+        setTimeout(() => {
+          if (!morphDemo.classList.contains("is-after")) return;
+          document.querySelectorAll(".morph-rec .morph-scroll-list, .morph-comments .morph-scroll-list").forEach((el) => {
+            scrollCancels.push(startPaneAutoScroll(el));
+          });
+        }, 900);
+      }
       loopTimer = setTimeout(() => {
         phaseIndex = (phaseIndex + 1) % PHASES.length;
         applyPhase(phaseIndex);
@@ -80,6 +136,7 @@ if (morphDemo) {
           } else if (!entry.isIntersecting && loopTimer !== null) {
             clearTimeout(loopTimer);
             loopTimer = null;
+            stopPaneAutoScroll();
           }
         });
       },

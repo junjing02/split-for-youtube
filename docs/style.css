@@ -412,6 +412,35 @@ img {
   overflow: hidden;
 }
 
+/* The scrollable inner list inside Recommended/Comments (the channel row
+   in .morph-desc doesn't need one — it never has more content than its
+   pane can show). flex:1/min-height:0 lets it take exactly the pane's
+   remaining space below the header, in EITHER state — a tall "before"
+   sidebar naturally fits every row with nothing left to scroll, while a
+   short "after" pane only fits a handful, and overflow-y:auto (scrollbar
+   hidden — this is a decorative mockup, not a real control) is what lets
+   script.js's auto-scroll (see the JS-driven scroll comment there) move
+   through the rest via scrollTop, instead of needing separate opacity
+   show/hide rules per breakpoint/state like an earlier version had.
+   pointer-events:none keeps a visitor's own scroll/drag from fighting the
+   automated one. */
+.morph-scroll-list {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scroll-behavior: smooth;
+  scrollbar-width: none;
+  pointer-events: none;
+}
+
+.morph-scroll-list::-webkit-scrollbar {
+  display: none;
+}
+
 .morph-desc {
   left: 3%;
   top: 62%;
@@ -484,19 +513,27 @@ img {
   left: 64%;
   top: 5%;
   width: 33%;
-  height: 15%;
+  /* Grown from 15% to fit a channel row (avatar + name/subscribers line)
+     plus 3 description lines, not just a single line — a single line at
+     15% read as too thin next to Recommended/Comments' real content. */
+  height: 17%;
 }
 
 .morph-demo.is-after .morph-rec {
   left: 64%;
-  top: 23%;
+  /* Shifted down 2% (was 23%) to clear the taller description above it;
+     height unchanged. */
+  top: 25%;
   width: 33%;
   height: 33%;
 }
 
 .morph-demo.is-after .morph-comments {
   left: 64%;
-  top: 59%;
+  /* Shifted down 2% (was 59%) for the same reason as Recommended above —
+     still lands with the same 3% gap under it (61+33+3=97, the
+     established bottom margin). */
+  top: 61%;
   width: 33%;
   height: 36%;
 }
@@ -526,47 +563,31 @@ img {
   align-items: center;
 }
 
-/* Recommended is the INVERSE of Comments below: it has MORE room in
-   "before" (a full-height sidebar with 15 rows, see .morph-rec above)
-   than in "after" (a short pane, same ~5-row budget as before this
-   pane became a full sidebar). So rows 6+ (header=1st child, so
-   item-row 6 = :nth-child(n+7)) are visible by default and hide the
-   moment "after" shrinks the pane, rather than the usual reveal-on-grow
-   pattern — no transition-delay on the hide (matches the shrink, no
-   lingering overflow), but a small delay on the reveal so they fade
-   back in only once "before" has mostly finished growing tall again. */
-.morph-rec .item-row:nth-child(n + 7) {
-  opacity: 1;
-  transition: opacity 0.35s ease;
-  transition-delay: 0.35s;
-}
-
-.morph-demo.is-after .morph-rec .item-row:nth-child(n + 7) {
-  opacity: 0;
-  transition-delay: 0s;
-}
-
-/* Comments is still a compact preview even in its taller "before" spot
-   (below the description, in the main column — see .morph-comments
-   above): its 3rd child onward (header=1st child, so item-rows 4+ =
-   :nth-child(n+5)) starts hidden and fades in once the "after" state's
-   pane has mostly finished growing, matching the same "no full preview
-   before, full content once it's the split layout" idea the description
-   line follows. Opacity-only (not display:none — display isn't
-   transitionable, and opacity:0 content overflowing the shorter "before"
-   pane is harmless since .morph-pane's own overflow:hidden clips
-   something invisible anyway). Fades back out instantly (no delay) when
-   shrinking back to "before" so nothing lingers past its shrunk
-   container. */
-.morph-comments .item-row:nth-child(n + 5) {
+/* Description's channel row + extra lines only fit in the "after" state's
+   taller pane (17% — see .morph-demo.is-after .morph-desc above) — the
+   "before"/"scrolled" states keep the original compact single-line
+   preview (.morph-desc's own height there, 6%, is unchanged and far too
+   short for this). Opacity-only, matching every other reveal-on-grow
+   pane in this demo — same reasoning as the rest (harmless invisible
+   overflow, instant hide / delayed reveal so nothing lingers past its
+   shrunk container). */
+.desc-extra {
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
-.morph-demo.is-after .morph-comments .item-row:nth-child(n + 5) {
+.morph-demo.is-after .desc-extra {
   opacity: 1;
   transition-delay: 0.35s;
 }
+
+/* Recommended/Comments no longer need opacity show/hide rules for extra
+   rows (an earlier version had per-state, per-breakpoint :nth-child
+   rules for this) — .morph-scroll-list's own flex+overflow above already
+   shows exactly what fits at whatever size the pane currently is, in
+   every state, and script.js's auto-scroll (only while "after" is
+   active) is what reveals the rest by actually scrolling to it, the same
+   way a real list would. */
 
 .stack-thumb {
   width: 46px;
@@ -635,10 +656,12 @@ img {
 
 @media (prefers-reduced-motion: reduce) {
   .morph-pane,
-  .morph-label span,
-  .morph-rec .item-row:nth-child(n + 7),
-  .morph-comments .item-row:nth-child(n + 5) {
+  .morph-label span {
     transition: none !important;
+  }
+
+  .morph-scroll-list {
+    scroll-behavior: auto;
   }
 }
 
@@ -881,6 +904,32 @@ section h2 {
     top: 30%;
   }
 
+  /* Description's after-state height (17%, set above) assumed desktop's
+     much taller body — at mobile's much shorter one, the same percentage
+     wasn't enough actual pixels for the channel row + extra lines, and
+     flexbox was silently shrinking the last line to 0 height rather than
+     visibly overflowing. Mobile gets its own shorter, avatar+1-line
+     version instead of trying to cram in every line phone-cramped — same
+     "show less detail on mobile" pattern already used for Recommended/
+     Comments' single-row-only limit below. Recommended/Comments then
+     shift down to clear the new (still taller-than-original) height. */
+  .morph-demo.is-after .morph-desc {
+    height: 25%;
+  }
+
+  .desc-extra:last-child {
+    display: none;
+  }
+
+  .morph-demo.is-after .morph-rec {
+    top: 32%;
+  }
+
+  .morph-demo.is-after .morph-comments {
+    top: 68%;
+    height: 30%;
+  }
+
   /* Full-width stacked, NOT the desktop two-column (video+desc+comments
      in a left column, Recommended as a right sidebar) — a phone-width
      mockup box just doesn't have room to show a real sidebar at a
@@ -939,10 +988,9 @@ section h2 {
   /* The "after" state's Recommended/Comments panes (sized as a fraction
      of the whole window, unrelated to the video's own aspect-ratio-driven
      size above) don't have room for a second item-row at phone width —
-     measured, not assumed. Permanently hidden here rather than just
-     staying at opacity:0, since there's no width budget to ever fade it
-     in. The FIRST item-row and the description's mock-line stay visible
-     in both states at every width (see the opacity rule above). */
+     measured, not assumed. The scroll-list auto-scroll (script.js) isn't
+     worth it at this size either, so rows past the first are simply
+     removed from layout rather than left to (not) scroll. */
   .morph-rec .item-row + .item-row,
   .morph-comments .item-row + .item-row {
     display: none;
