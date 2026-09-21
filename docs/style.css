@@ -353,11 +353,13 @@ img {
    deliberately NOT set here (aspect-ratio derives it from width instead),
    so both states below only ever specify width/left/top; the browser
    recalculates height every frame as width transitions, so it still
-   animates smoothly. This does mean the "after" state's video doesn't
-   fill its column's full height (a 16:9 shape at a sensible column width
-   just isn't as tall as the column) — that's intentional: it's the real
-   extension's own actual behavior (it sizes the video to its true aspect
-   ratio rather than stretching it to fill space), not a bug to fix. */
+   animates smoothly. At a sensible column width a 16:9 shape naturally
+   isn't as tall as the column, same as the real extension (its own video
+   column is height-unconstrained beyond the video's real aspect ratio) —
+   so the "after" state's video is vertically CENTERED in the available
+   height (top below), not pinned to the top with the leftover space only
+   below it, matching #primary-inner's own `justify-content: center` in
+   content.css. */
 .morph-video {
   aspect-ratio: 16 / 9;
   background: #000000;
@@ -406,7 +408,11 @@ img {
 
 .morph-demo.is-after .morph-video {
   left: 3%;
-  top: 5%;
+  /* Centered, not top-anchored — at width:58% the video's real (16:9)
+     height comes out to ~55% of the body's height (measured), so top is
+     set to roughly (100% - 55%) / 2 to split the leftover space evenly
+     above and below instead of dumping it all below the video. */
+  top: 22.5%;
   width: 58%;
 }
 
@@ -783,6 +789,15 @@ section h2 {
   .morph-video {
     left: 16%;
     width: 68%;
+  }
+
+  /* The "after" state's centered top (22.5%, set above for the desktop
+     16/10 window) doesn't carry over here — mobile's window is a
+     different overall shape (4/3.6), so the same 58%-wide 16:9 video
+     comes out a different height fraction of the body (measured: ~40%
+     here vs ~55% on desktop), needing its own centered top. */
+  .morph-demo.is-after .morph-video {
+    top: 30%;
   }
 
   .morph-desc {
