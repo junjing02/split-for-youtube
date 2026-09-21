@@ -254,9 +254,15 @@ img {
   /* width:100% — a grid/flex child inside .hero has repeatedly (twice
      now, see git history on .compare/.compare-col) not reliably gotten a
      definite width from stretch alone in real-browser testing; explicit
-     width:100% avoids depending on that again. */
+     width:100% avoids depending on that again.
+     max-width matches the hero's own content width (1080px hero - 2*24px
+     padding) rather than an arbitrary narrower value — a single mockup
+     that's much narrower than the hero leaves a lot of dead dot-grid
+     space on either side at desktop widths, which read as sparse/unfinished
+     compared to the old two-box layout that used almost the full hero
+     width. */
   width: 100%;
-  max-width: 720px;
+  max-width: 1032px;
   margin: 0 auto;
 }
 
@@ -359,9 +365,9 @@ img {
   display: flex;
   align-items: center;
   justify-content: center;
-  left: 10%;
-  top: 4%;
-  width: 80%;
+  left: 13%;
+  top: 3%;
+  width: 74%;
 }
 
 .morph-desc,
@@ -379,23 +385,23 @@ img {
 
 .morph-desc {
   left: 3%;
-  top: 77%;
+  top: 74%;
   width: 94%;
-  height: 6.5%;
+  height: 6%;
 }
 
 .morph-rec {
   left: 3%;
-  top: 85%;
+  top: 81%;
   width: 94%;
-  height: 6.5%;
+  height: 9.5%;
 }
 
 .morph-comments {
   left: 3%;
-  top: 93%;
+  top: 91.5%;
   width: 94%;
-  height: 6.5%;
+  height: 8.5%;
 }
 
 .morph-demo.is-after .morph-video {
@@ -450,28 +456,31 @@ img {
   align-items: center;
 }
 
-/* Description's line and every Recommended/Comments item-row: hidden
-   (opacity-only, NOT display:none — display isn't transitionable, and
-   opacity:0 content overflowing the much shorter "before" pane is
-   harmless since .morph-pane's own overflow:hidden clips something
-   invisible anyway) in the "before" state, fading in only once the "after"
-   state's panes have mostly finished growing. This is deliberate, not
-   just a space-saving compromise: real YouTube's own stacked layout
-   doesn't give recommendations/comments meaningful room either, so "no
-   real preview before, full content once it's the split layout" is an
-   honest before/after story, not a shortcut. Fades back out instantly (no
-   delay) when shrinking back to "before" so nothing lingers past its
-   shrunk container. */
-.morph-desc .mock-line,
-.morph-rec .item-row,
-.morph-comments .item-row {
+/* Description's line and each pane's FIRST item-row are always visible in
+   both states — the "before" pill panes are sized (above) to comfortably
+   fit exactly one row, so first paint (before any scroll/animation) shows
+   real content: a colored thumbnail/avatar plus text lines, not an empty
+   outline with just a header. Hiding all of it until "after" (an earlier
+   version of this) made the initial view look broken/unfinished, since a
+   visitor sees the "before" state first and the loop only starts a beat
+   after scrolling into view.
+
+   Only the SECOND item-row in Recommended/Comments is opacity-hidden in
+   "before" (not display:none — display isn't transitionable, and
+   opacity:0 content overflowing the shorter "before" pane is harmless
+   since .morph-pane's own overflow:hidden clips something invisible
+   anyway), fading in once the "after" state's panes have mostly finished
+   growing — there just isn't room for two rows in the compact stacked
+   preview. Fades back out instantly (no delay) when shrinking back to
+   "before" so nothing lingers past its shrunk container. */
+.morph-rec .item-row + .item-row,
+.morph-comments .item-row + .item-row {
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
-.morph-demo.is-after .morph-desc .mock-line,
-.morph-demo.is-after .morph-rec .item-row,
-.morph-demo.is-after .morph-comments .item-row {
+.morph-demo.is-after .morph-rec .item-row + .item-row,
+.morph-demo.is-after .morph-comments .item-row + .item-row {
   opacity: 1;
   transition-delay: 0.35s;
 }
@@ -761,14 +770,43 @@ section h2 {
     aspect-ratio: 4 / 3.6;
   }
 
+  /* "Before" state panes need their own top/height percentages at this
+     width and aspect-ratio — the desktop numbers above (tuned against a
+     16/10 window) leave far too little room here now that the "before"
+     panes actually show real content (a thumbnail/avatar row, not just a
+     header). Measured: at the desktop percentages, .morph-desc/.morph-rec/
+     .morph-comments came out at 16-26px tall, well under the ~30/48/40px
+     their header+row+padding actually need at mobile's own (smaller)
+     padding/thumbnail sizes, clipping content instead of showing it. The
+     video's own width is also dialed back from 74% to 68% here to free up
+     the extra vertical room these taller panes need. */
+  .morph-video {
+    left: 16%;
+    width: 68%;
+  }
+
+  .morph-desc {
+    top: 53%;
+    height: 12%;
+  }
+
+  .morph-rec {
+    top: 66%;
+    height: 18%;
+  }
+
+  .morph-comments {
+    top: 85%;
+    height: 15%;
+  }
+
   /* The "after" state's Recommended/Comments panes (sized as a fraction
      of the whole window, unrelated to the video's own aspect-ratio-driven
      size above) don't have room for a second item-row at phone width —
      measured, not assumed. Permanently hidden here rather than just
      staying at opacity:0, since there's no width budget to ever fade it
-     in. The FIRST item-row/mock-line still fades in normally per the
-     opacity rule above (it already starts at opacity:0 for the "before"
-     state at every width, not just phone).*/
+     in. The FIRST item-row and the description's mock-line stay visible
+     in both states at every width (see the opacity rule above). */
   .morph-rec .item-row + .item-row,
   .morph-comments .item-row + .item-row {
     display: none;
