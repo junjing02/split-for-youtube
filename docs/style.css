@@ -302,9 +302,18 @@ img {
   flex-direction: column;
 }
 
+/* 16:10, not 16:9 — the window itself just needs to read as "a landscape
+   browser window," but the VIDEO inside (.morph-video, below) needs to
+   actually be 16:9 like a real YouTube video, and a strictly-16:9 outer
+   window turned out not to leave enough room for both a real-proportioned
+   video AND the description/recommended/comments panes beneath it in the
+   "before" state (the math: a 16:9 video at any width close to full-width
+   already consumes ~75-85% of a 16:9 window's own height). A slightly
+   taller window fixes that without the video looking noticeably
+   non-landscape itself. */
 .compare-window-landscape {
   width: 100%;
-  aspect-ratio: 16 / 9;
+  aspect-ratio: 16 / 10;
 }
 
 .compare-dots {
@@ -334,16 +343,25 @@ img {
     width 0.85s cubic-bezier(0.65, 0, 0.35, 1), height 0.85s cubic-bezier(0.65, 0, 0.35, 1);
 }
 
+/* Real 16:9 — like an actual YouTube video, never stretched. Height is
+   deliberately NOT set here (aspect-ratio derives it from width instead),
+   so both states below only ever specify width/left/top; the browser
+   recalculates height every frame as width transitions, so it still
+   animates smoothly. This does mean the "after" state's video doesn't
+   fill its column's full height (a 16:9 shape at a sensible column width
+   just isn't as tall as the column) — that's intentional: it's the real
+   extension's own actual behavior (it sizes the video to its true aspect
+   ratio rather than stretching it to fill space), not a bug to fix. */
 .morph-video {
+  aspect-ratio: 16 / 9;
   background: #000000;
   border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
-  left: 3%;
-  top: 5%;
-  width: 94%;
-  height: 37%;
+  left: 10%;
+  top: 4%;
+  width: 80%;
 }
 
 .morph-desc,
@@ -361,30 +379,29 @@ img {
 
 .morph-desc {
   left: 3%;
-  top: 45%;
+  top: 77%;
   width: 94%;
-  height: 14%;
+  height: 6.5%;
 }
 
 .morph-rec {
   left: 3%;
-  top: 62%;
+  top: 85%;
   width: 94%;
-  height: 17%;
+  height: 6.5%;
 }
 
 .morph-comments {
   left: 3%;
-  top: 82%;
+  top: 93%;
   width: 94%;
-  height: 17%;
+  height: 6.5%;
 }
 
 .morph-demo.is-after .morph-video {
   left: 3%;
   top: 5%;
   width: 58%;
-  height: 90%;
 }
 
 .morph-demo.is-after .morph-desc {
@@ -433,21 +450,28 @@ img {
   align-items: center;
 }
 
-/* Second item-row in Recommended/Comments: hidden (opacity-only, so
-   .morph-body's overflow:hidden — inherited via .morph-pane's own
-   overflow:hidden — keeps it from ever visibly overflowing the much
-   shorter "before" pane) until the "after" state, where it fades in once
-   the pane has mostly finished growing. Fades back out instantly (no
-   delay) when shrinking back to "before" so it can't linger past its
+/* Description's line and every Recommended/Comments item-row: hidden
+   (opacity-only, NOT display:none — display isn't transitionable, and
+   opacity:0 content overflowing the much shorter "before" pane is
+   harmless since .morph-pane's own overflow:hidden clips something
+   invisible anyway) in the "before" state, fading in only once the "after"
+   state's panes have mostly finished growing. This is deliberate, not
+   just a space-saving compromise: real YouTube's own stacked layout
+   doesn't give recommendations/comments meaningful room either, so "no
+   real preview before, full content once it's the split layout" is an
+   honest before/after story, not a shortcut. Fades back out instantly (no
+   delay) when shrinking back to "before" so nothing lingers past its
    shrunk container. */
-.morph-rec .item-row + .item-row,
-.morph-comments .item-row + .item-row {
+.morph-desc .mock-line,
+.morph-rec .item-row,
+.morph-comments .item-row {
   opacity: 0;
   transition: opacity 0.35s ease;
 }
 
-.morph-demo.is-after .morph-rec .item-row + .item-row,
-.morph-demo.is-after .morph-comments .item-row + .item-row {
+.morph-demo.is-after .morph-desc .mock-line,
+.morph-demo.is-after .morph-rec .item-row,
+.morph-demo.is-after .morph-comments .item-row {
   opacity: 1;
   transition-delay: 0.35s;
 }
@@ -601,10 +625,6 @@ section h2 {
   transition-delay: 0s, 0s, 0s, 180ms;
 }
 
-.feature-card:nth-child(5) {
-  transition-delay: 0s, 0s, 0s, 240ms;
-}
-
 /* Big, faint background numeral — a common editorial/premium touch that
    also just reads as "here are 5 distinct reasons," reinforcing the
    section's own point at a glance. Low enough opacity to never compete
@@ -726,29 +746,31 @@ section h2 {
 }
 
 @media (max-width: 640px) {
-  /* The mockup window keeps its 16:9 landscape shape at any width, but
-     fixed-px padding/gaps/content inside it don't shrink along with a
-     narrower container the way the aspect-ratio box itself does — without
-     trimming those down too, content that fit fine at desktop size
-     overflows and gets clipped by .morph-pane's own overflow:hidden at
-     phone width. Permanently hiding the second item-row (not just fading
-     it in later, as the "after" state does at wider widths) is what
-     actually buys back most of the room; the rest just tightens
-     padding/gaps further. */
-  .morph-rec .item-row + .item-row,
-  .morph-comments .item-row + .item-row {
-    display: none;
+  /* .compare-dots (the traffic-light bar) has a fixed PIXEL height —
+     at desktop size that's a small sliver of the window's total height,
+     but at phone width it eats a much bigger fraction of it, leaving
+     .morph-body (everything below the dots) with meaningfully LESS room
+     than the percentage math below it assumes. Measured, not guessed: the
+     video (aspect-ratio-driven, width-based) ended up consuming ~84% of
+     .morph-body's real height here instead of the ~72% the desktop
+     numbers implied, leaving the 3 panes beneath it genuinely overlapping
+     the video itself. A taller window specifically at phone width is the
+     fix — same idea as the desktop-vs-16:9 change above, just needing a
+     second, larger correction at this size. */
+  .compare-window-landscape {
+    aspect-ratio: 4 / 3.6;
   }
 
-  /* The "before" state's panes are noticeably shorter than "after"'s (all
-     4 panes share one small stacked column vs. 3 panes sharing a whole
-     side column) — even the single remaining item-row overflows at phone
-     width there specifically (measured, not assumed). Hiding it only in
-     "before" turns the reveal into part of the story: no preview before,
-     real thumbnails once it becomes the split layout. */
-  .morph-demo:not(.is-after) .morph-desc .mock-line,
-  .morph-demo:not(.is-after) .morph-rec .item-row,
-  .morph-demo:not(.is-after) .morph-comments .item-row {
+  /* The "after" state's Recommended/Comments panes (sized as a fraction
+     of the whole window, unrelated to the video's own aspect-ratio-driven
+     size above) don't have room for a second item-row at phone width —
+     measured, not assumed. Permanently hidden here rather than just
+     staying at opacity:0, since there's no width budget to ever fade it
+     in. The FIRST item-row/mock-line still fades in normally per the
+     opacity rule above (it already starts at opacity:0 for the "before"
+     state at every width, not just phone).*/
+  .morph-rec .item-row + .item-row,
+  .morph-comments .item-row + .item-row {
     display: none;
   }
 
