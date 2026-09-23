@@ -326,7 +326,21 @@
     // calling getBoundingClientRect() on every mousemove is itself a
     // forced-layout read that adds to the same jank.
     const rect = dragState.rect;
-    let px = rect.right - e.clientX; // side pane is on the right now
+    // DELTA from the mousedown point, not an absolute cursor position —
+    // same fix, same reasoning as the vertical (recs/comments) resizer's
+    // own onDocumentMouseMoveV below. This divider's clickable hit-box
+    // (DIVIDER_WIDTH, 10px) is wider than its ~3px visual line, so a click
+    // essentially never lands exactly on that line. The old absolute
+    // formula (`rect.right - e.clientX`) computed a brand new width from
+    // the raw cursor position the INSTANT the drag started — any click
+    // offset within that wider hit-box meant an immediate jump by that
+    // offset before the mouse had even moved, then continued tracking
+    // from the wrong baseline; reported as the divider not tracking the
+    // cursor smoothly, glitching/jumping partway through a drag. A delta
+    // from the width it ACTUALLY was at mousedown starts every drag with
+    // zero jump by construction and follows the cursor 1:1 regardless of
+    // where within the hit-box it was grabbed.
+    let px = dragState.startWidth + (dragState.startX - e.clientX);
     px = clampSideWidth(px, rect, dragState.ratio);
     pendingSideWidth = px;
     if (!sideWidthFrameScheduled) {
@@ -374,10 +388,17 @@
     if (resizer.dataset.bound === "1") return;
     resizer.dataset.bound = "1";
     resizer.addEventListener("mousedown", (e) => {
+      // sidePane is queried fresh here rather than passed in — by the time
+      // a user can actually click the resizer, ensureLayout() has already
+      // built it, and this only ever runs on a real click, not at setup
+      // time (when it might not exist yet on a first pass).
+      const sidePane = document.getElementById("yt-split-side-pane");
       dragState = {
         columns,
         rect: columns.getBoundingClientRect(),
-        ratio: measureVideoAspectRatio()
+        ratio: measureVideoAspectRatio(),
+        startWidth: sidePane ? sidePane.getBoundingClientRect().width : 0,
+        startX: e.clientX
       };
       document.body.classList.add("yt-split-resizing");
       e.preventDefault();
