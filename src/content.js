@@ -23,15 +23,23 @@
   let manualSideWidthRatio = 0.5;
 
   // Whether the description pane is expanded for the CURRENT video only —
-  // deliberately NOT persisted (unlike the recommendations/comments
-  // collapse state below, which IS remembered via localStorage). Used to
-  // default to localStorage too, but that meant expanding it once left it
-  // expanded on every future video and every refresh — per explicit
-  // request, it should instead always start collapsed and only stay
-  // expanded for as long as the current page/video does. Reset in start()
-  // on every navigation, same pattern as hasManualSideWidth/
-  // inRecsFocusMode above.
+  // deliberately NOT persisted. Used to default to localStorage, but that
+  // meant expanding it once left it expanded on every future video and
+  // every refresh — per explicit request, it should instead always start
+  // collapsed and only stay expanded for as long as the current page/video
+  // does. Reset in start() on every navigation, same pattern as
+  // hasManualSideWidth/inRecsFocusMode above.
   let descExpanded = false;
+
+  // Recommendations/comments collapsed state — same in-memory-only, reset-
+  // every-navigation pattern as descExpanded just above (this used to be
+  // the one exception, persisted via localStorage/SECONDARY_COLLAPSED_KEY
+  // and COMMENTS_COLLAPSED_KEY, specifically so either could survive a
+  // refresh or a new video; per explicit request that's now considered the
+  // wrong default — collapsing one to make room for the other should only
+  // last for the current video, not follow you to every video after).
+  let secondaryCollapsed = false;
+  let commentsCollapsed = false;
 
   // Grace period after a drag ends, used by the window "resize" handler
   // below (the only place that still reclamps — see ensureLayout()'s
@@ -118,9 +126,6 @@
   // instead, comfortably above any plausible player-internal floor.
   const MIN_VIDEO_HEIGHT = 360;
 
-  const SECONDARY_COLLAPSED_KEY = "yt-split-secondary-collapsed";
-  const COMMENTS_COLLAPSED_KEY = "yt-split-comments-collapsed";
-
   function isWatchPage() {
     // Regular videos and live streams both use /watch — this deliberately
     // covers both. Premieres/VOD-of-a-past-stream are also /watch.
@@ -131,37 +136,36 @@
     return location.pathname.startsWith("/shorts/");
   }
 
-  // options: { storageKey, defaultCollapsed } — when given, the header
-  // becomes clickable and toggles a "yt-split-pane-collapsed" class on
-  // `container` (persisted). Recommendations/comments use this so either
-  // can be collapsed to make room for the other, same idea as the
-  // description section but defaulting to expanded instead of collapsed.
+  // options: { collapsed, onToggle } — when given, the header becomes
+  // clickable and toggles a "yt-split-pane-collapsed" class on `container`.
+  // Recommendations/comments use this so either can be collapsed to make
+  // room for the other, same idea as the description section. `collapsed`
+  // is the caller's own in-memory flag (secondaryCollapsed/
+  // commentsCollapsed, reset every navigation in start() — see their own
+  // comment for why this isn't persisted to localStorage); `onToggle`
+  // writes back to it on click.
   function ensurePaneHeader(container, text, options) {
     let header = container.querySelector(":scope > .yt-split-pane-header");
     if (!header) {
       header = document.createElement("div");
       header.className = "yt-split-pane-header";
-      if (options && options.storageKey) {
+      if (options && options.onToggle) {
         header.classList.add("yt-split-collapsible-header");
         header.addEventListener("click", () => {
           const collapsed = !container.classList.contains("yt-split-pane-collapsed");
           container.classList.toggle("yt-split-pane-collapsed", collapsed);
-          localStorage.setItem(options.storageKey, collapsed ? "1" : "0");
+          options.onToggle(collapsed);
         });
       }
       container.insertBefore(header, container.firstChild);
     }
     if (header.textContent !== text) header.textContent = text;
 
-    if (options && options.storageKey) {
-      const stored = localStorage.getItem(options.storageKey);
-      const collapsed = stored === null ? !!options.defaultCollapsed : stored === "1";
-      // Only ever ADD here — same pattern as the description pane's own
-      // expand flag below: the click handler is what removes it, so this
-      // redundant re-check on every layout pass is a harmless no-op once
-      // in sync, and never fights a live click.
-      if (collapsed) container.classList.add("yt-split-pane-collapsed");
-    }
+    // Only ever ADD here — same pattern as the description pane's own
+    // expand flag: the click handler is what removes it, so this
+    // redundant re-check on every layout pass is a harmless no-op once
+    // in sync, and never fights a live click.
+    if (options && options.collapsed) container.classList.add("yt-split-pane-collapsed");
   }
 
   // Moves a node into newParent, remembering exactly where it came from so
@@ -790,8 +794,8 @@
     ensureDescPane(sidePane, below);
 
     ensurePaneHeader(secondary, hasLiveChat(secondary) ? "Live Chat" : "Recommended", {
-      storageKey: SECONDARY_COLLAPSED_KEY,
-      defaultCollapsed: false
+      collapsed: secondaryCollapsed,
+      onToggle: (c) => { secondaryCollapsed = c; }
     });
     moveNode(secondary, sidePane);
 
@@ -813,8 +817,8 @@
       sidePane.appendChild(commentsPane);
     }
     ensurePaneHeader(commentsPane, "Comments", {
-      storageKey: COMMENTS_COLLAPSED_KEY,
-      defaultCollapsed: false
+      collapsed: commentsCollapsed,
+      onToggle: (c) => { commentsCollapsed = c; }
     });
 
     // Comments are absent while a stream is live (they show up once it
@@ -1099,12 +1103,12 @@
     const secondary = document.getElementById("secondary");
     if (secondary && secondary.classList.contains("yt-split-pane-collapsed")) {
       secondary.classList.remove("yt-split-pane-collapsed");
-      localStorage.setItem(SECONDARY_COLLAPSED_KEY, "0");
+      secondaryCollapsed = false;
     }
     const commentsPane = document.getElementById("yt-split-comments-pane");
     if (commentsPane && commentsPane.classList.contains("yt-split-pane-collapsed")) {
       commentsPane.classList.remove("yt-split-pane-collapsed");
-      localStorage.setItem(COMMENTS_COLLAPSED_KEY, "0");
+      commentsCollapsed = false;
     }
     const columns = document.querySelector("#columns");
     if (!columns) return;
@@ -1300,6 +1304,10 @@
     // navigation" reset as the state above — see descExpanded's own
     // comment for why this is no longer persisted via localStorage.
     descExpanded = false;
+    // Recommendations/comments: always start expanded, same reset — see
+    // secondaryCollapsed/commentsCollapsed's own comment above.
+    secondaryCollapsed = false;
+    commentsCollapsed = false;
 
     // Wrapped: an uncaught exception anywhere in this initial pass (a null
     // reference against some not-yet-settled part of the DOM right at SPA
