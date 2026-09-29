@@ -1107,12 +1107,17 @@
   let inRecsFocusMode = false;
 
   // When the video finishes, there's nothing left to watch and it's a
-  // natural point to shift focus to recommendations/comments: expand
-  // either if currently collapsed, and give the side pane a lot more of
-  // the window (still respecting the video's own minimum width).
-  // Reverts — just the width, not anything the user chose to collapse —
-  // as soon as playback resumes, since at that point the video is what
-  // matters again.
+  // natural point to shift focus to recommendations: expand it if
+  // currently collapsed, COLLAPSE comments (there's nothing new to read
+  // there either, and freeing its space is what actually lets
+  // recommendations grow — see the flex-grow scoped rule in content.css
+  // keyed off comments being collapsed), and give the side pane a lot
+  // more of the window (still respecting the video's own minimum width).
+  // Reverts — just the width, not the collapse states — as soon as
+  // playback resumes, since at that point the video is what matters
+  // again (collapsing comments here is itself automatic, same as the
+  // widen; whether to re-expand it is left to the user, or to the next
+  // navigation's normal reset in start()).
   function enterRecsFocusMode() {
     inRecsFocusMode = true;
     // This is an automatic widen, not the user's own choice — clearing it
@@ -1127,9 +1132,9 @@
       secondaryCollapsed = false;
     }
     const commentsPane = document.getElementById("yt-split-comments-pane");
-    if (commentsPane && commentsPane.classList.contains("yt-split-pane-collapsed")) {
-      commentsPane.classList.remove("yt-split-pane-collapsed");
-      commentsCollapsed = false;
+    if (commentsPane && !commentsPane.classList.contains("yt-split-pane-collapsed")) {
+      commentsPane.classList.add("yt-split-pane-collapsed");
+      commentsCollapsed = true;
     }
     const columns = document.querySelector("#columns");
     if (!columns) return;
