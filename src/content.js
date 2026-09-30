@@ -826,7 +826,7 @@
   const AMBIENT_SAMPLE_W = 64;
   const AMBIENT_SAMPLE_H = 36;
   const AMBIENT_CANVAS_SCALE = 1 / 8; // canvas px per CSS px
-  const AMBIENT_CANVAS_BLUR = 4; // in canvas px (~32 CSS px)
+  const AMBIENT_CANVAS_BLUR = 7; // in canvas px (~56 CSS px)
   const AMBIENT_LEVELS = 12;
   const AMBIENT_BLEND = 0.5; // weight of each new frame over the previous
   const AMBIENT_FRAME_MS = 1000 / 30;

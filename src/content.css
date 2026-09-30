@@ -43,12 +43,13 @@ html.yt-split-active {
   --split-ambient-opacity: 0.7; /* overall strength, 0-1 */
   --split-ambient-brightness: 1;
   --split-ambient-saturate: 1.3;
-  --split-ambient-blur: 24px; /* extra softening on top of the canvas blur */
+  --split-ambient-blur: 40px; /* extra softening on top of the canvas blur */
   --split-ambient-grain: 0.35; /* anti-banding grain, 0 = off */
   /* How far the glow extends past the window on each side, so the blurred
-     canvas edges fade out off-screen (keep > ~3x --split-ambient-blur +
-     ~100px for the canvas's own blur). */
-  --split-ambient-overscan: 180px;
+     canvas edges fade out off-screen. Keep it above ~3x the combined blur
+     (sqrt(canvas blur^2 + --split-ambient-blur^2); the canvas blur is
+     AMBIENT_CANVAS_BLUR in content.js, ~56px): ~210px at the defaults. */
+  --split-ambient-overscan: 260px;
 }
 
 html.yt-split-active:not([dark]) {
