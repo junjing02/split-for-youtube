@@ -516,8 +516,20 @@ html.yt-split-active #below > * {
    deliberately wider than its 24px yt-icon slot, and YouTube offsets it
    up-left to center it over that slot. max-width: 100% squashed it to
    24px, rendering the thumb at half size while keeping the offset, so it
-   came out tiny and off-center up-left next to the (static) dislike icon. */
-html.yt-split-active #below *:not(yt-animated-icon, yt-animated-icon *) {
+   came out tiny and off-center up-left next to the (static) dislike icon.
+   Also excludes the Subscribe button (both its older renderer tag and the
+   newer view-model tag), which has its own fixed-size pill layout and
+   split into two stacked pills when squeezed. */
+html.yt-split-active
+  #below
+  *:not(
+    yt-animated-icon,
+    yt-animated-icon *,
+    ytd-subscribe-button-renderer,
+    ytd-subscribe-button-renderer *,
+    yt-subscribe-button-view-model,
+    yt-subscribe-button-view-model *
+  ) {
   max-width: 100% !important;
   min-width: 0 !important;
   box-sizing: border-box !important;
@@ -562,27 +574,15 @@ html.yt-split-active #below #above-the-fold #title * {
   overflow: visible !important;
 }
 
-/* A fix forcing #below #subscribe-button into a single flex row (to
-   combine the Subscribe button + notification bell into one pill, like
-   vanilla YouTube) was tried and reverted — it made the Subscribe button
-   disappear entirely instead. #subscribe-button evidently isn't a plain
-   layout wrapper the way it looks; forcing display/flex-direction on it
-   broke whatever internal state actually controls the button's own
-   visibility. Don't re-attempt that RESTYLING approach — if revisited,
-   first confirm the actual selector/structure live (e.g. via DevTools on a
-   real video) rather than assuming from the id name alone.
-
-   Different ask, different (safer) mechanism: explicitly HIDE the
-   Subscribe/Subscribed toggle + notification bell entirely, rather than
-   trying to restyle them. Hiding doesn't touch the component's own
-   internal rendering logic the way forcing a layout mode did, so it
-   shouldn't be able to break it the same way. Targets the specific
-   renderer tag, not the #subscribe-button wrapper div — that wrapper also
-   contains the "Join" (channel membership) button, a separate, unrelated
-   component that should stay visible. */
-html.yt-split-active #below ytd-subscribe-button-renderer {
-  display: none !important;
-}
+/* Subscribe button (+ notification bell): visible again, by request. It
+   was hidden with display: none after showing up as two separate stacked
+   pills (Subscribe, bell) instead of YouTube's single merged pill. Likely
+   cause: the #below * wildcard above squeezing the button's own layout
+   below its natural size, the same way it shrank the like icon. So instead
+   of hiding or restyling it, it's excluded from that wildcard (see the
+   :not() there) and left to YouTube's native styling. Don't force
+   display/flex-direction on #subscribe-button: that was tried once and
+   made the button disappear entirely. */
 
 /* Like button icon: no rule here on purpose. Its size/position bug was
    caused by the #below * wildcard above (see its :not() exclusion), not
