@@ -206,7 +206,24 @@
   // formula as the single source of truth for both is what makes them
   // consistent instead of two independent numbers that could drift apart.
   function minVideoWidthFor(ratio) {
-    return Math.max(MIN_VIDEO_WIDTH, MIN_VIDEO_HEIGHT * ratio);
+    return Math.max(MIN_VIDEO_WIDTH, MIN_VIDEO_HEIGHT * ratio, playerMinWidth);
+  }
+
+  // YouTube's own stylesheet can give #player-container-outer a min-width
+  // of its own (content.css doesn't override it). If that's larger than
+  // our floor above, the video column could shrink below it while the
+  // player itself stayed put, spilling past the divider with the side pane
+  // sliding over it. Folding it into minVideoWidthFor() keeps the grid
+  // minimum and the drag clamp in agreement with what the player will
+  // actually do. Refreshed by constrainVideoSize(); only px values count
+  // (a percentage min-width comes back unresolved from getComputedStyle).
+  let playerMinWidth = 0;
+
+  function measurePlayerMinWidth() {
+    const container = document.querySelector("#player-container-outer");
+    if (!container) return 0;
+    const value = getComputedStyle(container).minWidth;
+    return value.endsWith("px") ? parseFloat(value) || 0 : 0;
   }
 
   function clampSideWidth(px, columnsRect, ratio) {
@@ -297,6 +314,14 @@
   // wrong the way a size-based formula can, because "do these two boxes'
   // edges cross" is a direct geometric fact about the real, current
   // render, not a prediction.
+  //
+  // Also measures the VIDEO ITSELF (#player-container-outer), not just its
+  // column: #primary is a grid cell and never overflows, but the player
+  // inside it can refuse to shrink past a minimum of its own (see
+  // playerMinWidth above) and spill out past the divider. Reported as
+  // "the divider keeps dragging over the video once the video stops
+  // shrinking" — checking #primary alone never saw it. The limit is the
+  // divider's own left edge (the gap), not the side pane's.
   function preventColumnOverlap() {
     const primary = document.querySelector("#primary");
     const sidePane = document.getElementById("yt-split-side-pane");
@@ -305,8 +330,14 @@
     const primaryRect = primary.getBoundingClientRect();
     const sideRect = sidePane.getBoundingClientRect();
     if (primaryRect.width <= 0 || sideRect.width <= 0) return;
-    const overlap = primaryRect.right - sideRect.left;
-    if (overlap <= 0) return; // no overlap — primary's right edge is at or before the side pane's left edge
+    const player = document.querySelector("#player-container-outer");
+    const playerRect = player ? player.getBoundingClientRect() : null;
+    const videoRight =
+      playerRect && playerRect.width > 0 ? Math.max(primaryRect.right, playerRect.right) : primaryRect.right;
+    const resizer = document.getElementById("yt-split-resizer");
+    const limit = resizer ? resizer.getBoundingClientRect().left : sideRect.left;
+    const overlap = videoRight - limit;
+    if (overlap <= 0.5) return; // no overlap (0.5px slack for sub-pixel rounding)
     const current = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue(SIDE_WIDTH_VAR)
     );
@@ -317,6 +348,10 @@
     const corrected = clampSideWidth(current - overlap - 1, columnsRect);
     setSideWidth(corrected);
     if (pendingSideWidth != null) pendingSideWidth = corrected;
+    // Mid-drag, remember this as a hard stop for the rest of the drag, so
+    // further mousemoves are capped here up front (the divider simply
+    // stops) instead of overshooting and being pulled back every frame.
+    if (dragState) dragState.maxSide = Math.min(dragState.maxSide, corrected);
   }
 
   function onDocumentMouseMove(e) {
@@ -341,7 +376,7 @@
     // zero jump by construction and follows the cursor 1:1 regardless of
     // where within the hit-box it was grabbed.
     let px = dragState.startWidth + (dragState.startX - e.clientX);
-    px = clampSideWidth(px, rect, dragState.ratio);
+    px = Math.min(clampSideWidth(px, rect, dragState.ratio), dragState.maxSide);
     pendingSideWidth = px;
     if (!sideWidthFrameScheduled) {
       sideWidthFrameScheduled = true;
@@ -398,7 +433,9 @@
         rect: columns.getBoundingClientRect(),
         ratio: measureVideoAspectRatio(),
         startWidth: sidePane ? sidePane.getBoundingClientRect().width : 0,
-        startX: e.clientX
+        startX: e.clientX,
+        // Hard stop discovered mid-drag by preventColumnOverlap().
+        maxSide: Infinity
       };
       document.body.classList.add("yt-split-resizing");
       e.preventDefault();
@@ -1079,6 +1116,7 @@
     // (every navigation, retry, resize, and video-ended widen), not just
     // when #primary-inner's height happens to be measurable that moment.
     const ratio = measureVideoAspectRatio();
+    playerMinWidth = measurePlayerMinWidth();
     document.documentElement.style.setProperty(VIDEO_RATIO_VAR, String(ratio));
     document.documentElement.style.setProperty(VIDEO_MIN_WIDTH_VAR, minVideoWidthFor(ratio) + "px");
 
