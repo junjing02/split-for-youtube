@@ -31,6 +31,7 @@ On regular YouTube, scrolling down to reach recommendations or comments scrolls 
 - **Video-first by default** — every video loads with the player at its largest possible size; the side pane takes whatever's left.
 - **Collapsible sections** — description, recommendations, and comments each collapse to a single header with one click.
 - **Live streams supported** — recommendations automatically become live chat while a stream is live.
+- **Ambient light** — with YouTube's Ambient mode on (dark theme), the video's colors glow softly across the whole background, spreading out from each edge of the video and following it frame by frame. Turn Ambient mode off in the player settings and the background goes back to normal.
 - **Stays out of the way** — theater mode, Shorts, and smaller windows all fall back to YouTube's normal layout, untouched.
 
 ## Install

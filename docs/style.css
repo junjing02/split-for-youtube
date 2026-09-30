@@ -1086,15 +1086,25 @@ img {
   font-size: 16px;
 }
 
-/* Two selling points only (trimmed on purpose — see git history), laid
-   out as a plain two-column row: no card chrome, hover effects or
-   decorative numerals. */
+/* Three selling points (kept deliberately short — see git history), in a
+   plain row: no card chrome, hover effects or decorative numerals. */
 .feature-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 16px;
-  max-width: 820px;
+  max-width: 1032px;
   margin: 0 auto;
+}
+
+@media (max-width: 900px) and (min-width: 641px) {
+  .feature-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  /* Odd one out on the last row spans it instead of sitting half-empty. */
+  .feature:last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
 }
 
 .feature {
