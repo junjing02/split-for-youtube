@@ -1,105 +1,102 @@
 document.getElementById("year").textContent = new Date().getFullYear();
 
-// Before/scrolled/after mockup: auto-loops through three phases once it
-// scrolls into view, showing panes slide/resize into their new positions
-// (see the long comment on .morph-demo in style.css for why this is built
-// as plain left/top/width/height percentage transitions rather than
-// anything resembling the earlier drag-slider). The middle "scrolled"
-// phase demonstrates the actual problem this extension solves — on real
-// YouTube, scrolling down to reach recommendations/comments scrolls the
-// video itself off-screen — rather than just asserting it in copy.
-// Respects prefers-reduced-motion by settling directly on the "after"
-// state (the most informative one, and the one with no motion left to
-// object to) with no animation or loop at all.
+// Mockup timeline: steps through how the extension actually behaves by
+// swapping state classes on #morphDemo (style.css holds every state's
+// geometry; each step here is just "which classes, which caption, how
+// long"). Starts when the mockup scrolls into view, pauses and resets when
+// it leaves. With prefers-reduced-motion it settles on the split layout
+// with no motion at all.
 const morphDemo = document.getElementById("morphDemo");
 if (morphDemo) {
+  const caption = morphDemo.querySelector(".morph-caption");
+  const lists = morphDemo.querySelectorAll(".morph-rec .morph-scroll-list, .morph-comments .morph-scroll-list");
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function setCaption(text) {
+    if (!caption || !text || caption.textContent === text) return;
+    caption.classList.add("is-changing");
+    setTimeout(() => {
+      caption.textContent = text;
+      caption.classList.remove("is-changing");
+    }, 200);
+  }
+
+  function scrollLists(toEnd) {
+    lists.forEach((el) => {
+      el.scrollTo({ top: toEnd ? el.scrollHeight - el.clientHeight : 0, behavior: "smooth" });
+    });
+  }
+
   if (reduceMotion) {
     morphDemo.classList.add("is-after");
+    if (caption) caption.textContent = "With Split for YouTube";
   } else if ("IntersectionObserver" in window) {
-    let loopTimer = null;
-    // classes: what .morph-demo should have during this phase (besides
-    // none, which is the plain "before" state). hold: how long to stay on
-    // this phase before advancing to the next one — "after" holds much
-    // longer than the others specifically to leave room for the pane
-    // auto-scroll cycle below to actually play out.
-    const PHASES = [
-      { classes: [], hold: 1400 },
-      { classes: ["is-scrolled"], hold: 1500 },
-      { classes: ["is-after"], hold: 6200 },
+    const STATES = [
+      "is-scrolled",
+      "is-after",
+      "is-dragged",
+      "comments-collapsed",
+      "cursor-divider",
+      "cursor-comments",
+      "cursor-collapsed",
+      "cursor-press",
+    ];
+    const SPLIT = "With Split for YouTube";
+    const SCROLL = "Scroll freely — the video stays put";
+    const DRAG = "Drag the divider to resize";
+    const COLLAPSE = "Collapse what you don't need";
+    // cls: the complete set of state classes for the step. hold: ms before
+    // the next step. Pane/cursor moves take 0.85s (style.css), so holds
+    // that follow a move are longer than that.
+    const STEPS = [
+      { cls: [], caption: "Regular YouTube", hold: 1800, enter: () => scrollLists(false) },
+      { cls: ["is-scrolled"], caption: "Scroll down — the video scrolls away", hold: 2100 },
+      { cls: ["is-after"], caption: SPLIT, hold: 2000 },
+      { cls: ["is-after"], caption: SCROLL, hold: 1800, enter: () => scrollLists(true) },
+      { cls: ["is-after"], caption: SCROLL, hold: 1500, enter: () => scrollLists(false) },
+      { cls: ["is-after", "cursor-divider"], caption: DRAG, hold: 1000 },
+      { cls: ["is-after", "cursor-divider", "is-dragged"], caption: DRAG, hold: 1500 },
+      { cls: ["is-after", "cursor-divider"], caption: DRAG, hold: 1300 },
+      { cls: ["is-after", "cursor-comments"], caption: COLLAPSE, hold: 1000 },
+      { cls: ["is-after", "cursor-comments", "cursor-press"], caption: COLLAPSE, hold: 160 },
+      { cls: ["is-after", "cursor-comments", "comments-collapsed"], caption: COLLAPSE, hold: 1600 },
+      { cls: ["is-after", "cursor-collapsed", "comments-collapsed"], caption: COLLAPSE, hold: 1000 },
+      { cls: ["is-after", "cursor-collapsed", "comments-collapsed", "cursor-press"], caption: COLLAPSE, hold: 160 },
+      { cls: ["is-after", "cursor-collapsed"], caption: COLLAPSE, hold: 1400 },
+      { cls: ["is-after"], caption: SPLIT, hold: 1200 },
     ];
 
-    // Recommended/Comments auto-scroll: once the "after" state's panes
-    // have (mostly) finished resizing, scroll each .morph-scroll-list to
-    // its bottom and back, demonstrating that these panes scroll
-    // independently while the video stays put — the actual point of the
-    // whole demo, worth showing directly rather than leaving the panes
-    // static once split. Plain scrollTop + scroll-behavior:smooth (CSS)
-    // rather than a CSS keyframe animation, since the scrollable distance
-    // depends on real content height vs. the pane's rendered size —
-    // something only the browser's own layout can measure, not a
-    // percentage guessed up front.
-    let scrollCancels = [];
-    function stopPaneAutoScroll() {
-      scrollCancels.forEach((cancel) => cancel());
-      scrollCancels = [];
-      document.querySelectorAll(".morph-scroll-list").forEach((el) => {
-        el.scrollTop = 0;
-      });
-    }
-    function startPaneAutoScroll(el) {
-      let cancelled = false;
-      function cycle() {
-        if (cancelled) return;
-        const max = el.scrollHeight - el.clientHeight;
-        if (max <= 0) {
-          return; // nothing to scroll — every row already fits
-        }
-        el.scrollTo({ top: max, behavior: "smooth" });
-        setTimeout(() => {
-          if (cancelled) return;
-          el.scrollTo({ top: 0, behavior: "smooth" });
-          setTimeout(() => {
-            if (!cancelled) cycle();
-          }, 1900);
-        }, 1900);
-      }
-      cycle();
-      return () => {
-        cancelled = true;
-      };
+    let timer = null;
+    let index = 0;
+
+    function applyStep(i) {
+      const step = STEPS[i];
+      morphDemo.classList.remove(...STATES);
+      morphDemo.classList.add(...step.cls);
+      setCaption(step.caption);
+      if (step.enter) step.enter();
+      timer = setTimeout(() => {
+        index = (index + 1) % STEPS.length;
+        applyStep(index);
+      }, step.hold);
     }
 
-    let phaseIndex = 0;
-    function applyPhase(i) {
-      morphDemo.classList.remove("is-scrolled", "is-after");
-      stopPaneAutoScroll();
-      PHASES[i].classes.forEach((c) => morphDemo.classList.add(c));
-      if (PHASES[i].classes.includes("is-after")) {
-        // Waits out the panes' own 0.85s resize transition (see
-        // .morph-pane in style.css) so scrolling only starts once each
-        // pane is actually at its final "after" size.
-        setTimeout(() => {
-          if (!morphDemo.classList.contains("is-after")) return;
-          document.querySelectorAll(".morph-rec .morph-scroll-list, .morph-comments .morph-scroll-list").forEach((el) => {
-            scrollCancels.push(startPaneAutoScroll(el));
-          });
-        }, 900);
-      }
-      loopTimer = setTimeout(() => {
-        phaseIndex = (phaseIndex + 1) % PHASES.length;
-        applyPhase(phaseIndex);
-      }, PHASES[i].hold);
+    function reset() {
+      clearTimeout(timer);
+      timer = null;
+      index = 0;
+      morphDemo.classList.remove(...STATES);
+      scrollLists(false);
+      setCaption(STEPS[0].caption);
     }
+
     const morphObserver = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
-          if (entry.isIntersecting && loopTimer === null) {
-            loopTimer = setTimeout(() => applyPhase(0), 1600);
-          } else if (!entry.isIntersecting && loopTimer !== null) {
-            clearTimeout(loopTimer);
-            loopTimer = null;
-            stopPaneAutoScroll();
+          if (entry.isIntersecting && timer === null) {
+            timer = setTimeout(() => applyStep(0), 1000);
+          } else if (!entry.isIntersecting && timer !== null) {
+            reset();
           }
         });
       },

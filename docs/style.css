@@ -15,6 +15,10 @@
   --accent-hover: #4338ca;
   --accent-light: #4f46e5;
   --accent-soft: rgba(79, 70, 229, 0.08);
+  --line-strong: rgba(0, 0, 0, 0.26);
+  --mock-bg: #ffffff;
+  --mock-pane: #f4f4f6;
+  --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.18);
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -32,6 +36,9 @@
     --accent-hover: #818cf8;
     --accent-light: #a5b4fc;
     --accent-soft: rgba(129, 140, 248, 0.12);
+    --line-strong: rgba(255, 255, 255, 0.3);
+    --mock-bg: #0f0f0f;
+    --mock-pane: #1b1b1d;
     --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.7);
   }
 }
@@ -242,35 +249,21 @@ img {
   color: var(--text-dim);
 }
 
-/* Before/after comparison: ONE mockup window that morphs live between
-   YouTube's normal stacked layout and the split layout, instead of two
-   static boxes side by side — shows the actual panes (video/description/
-   recommended/comments) sliding and resizing into their new positions,
-   which tells the "what this does" story far more directly than a static
-   before/after ever could.
+/* Mockup: ONE mock browser window that plays through how the extension
+   actually behaves (script.js drives the timeline via state classes on
+   .morph-demo): regular YouTube -> scrolling loses the video -> the split
+   layout -> lists scroll on their own -> dragging the divider -> collapsing
+   a pane. Built as plain absolutely-positioned boxes transitioning
+   left/top/width/height PERCENTAGES — no clip-path or custom-property
+   animation (an earlier drag-slider built that way broke when deployed).
 
-   Deliberately NOT the earlier draggable-slider approach (see git
-   history — it broke when actually deployed and wasn't worth chasing
-   down further). This is simpler and more robust by construction: every
-   .morph-pane is a plain absolutely-positioned box animating its own
-   left/top/width/height as PERCENTAGES between two hardcoded states
-   (default = "before", .is-after = "after") — no custom properties, no
-   clip-path, no aspect-ratio interacting with anything animated. Percent-
-   based top/left/width/height transitions are well-supported and directly
-   verified working (see the Playwright screenshots taken while building
-   this), unlike the --pos/clip-path combination that broke last time. */
+   Geometry: .morph-body (16:10 window minus the 37px browser bar) is
+   ~1.70-1.75x as wide as it is tall on desktop, so a 16:9 video's height
+   is ~0.955-0.985x its width percentage (~0.71x on mobile, see the media
+   query). Every top/height below is worked out from that; re-derive them
+   if the window's aspect ratio or the bar height changes. */
 
 .morph-demo {
-  /* width:100% — a grid/flex child inside .hero has repeatedly (twice
-     now, see git history on .compare/.compare-col) not reliably gotten a
-     definite width from stretch alone in real-browser testing; explicit
-     width:100% avoids depending on that again.
-     max-width matches the hero's own content width (1080px hero - 2*24px
-     padding) rather than an arbitrary narrower value — a single mockup
-     that's much narrower than the hero leaves a lot of dead dot-grid
-     space on either side at desktop widths, which read as sparse/unfinished
-     compared to the old two-box layout that used almost the full hero
-     width. */
   width: 100%;
   max-width: 1032px;
   margin: 0 auto;
@@ -278,44 +271,32 @@ img {
 
 .morph-label {
   position: relative;
-  height: 16px;
-  margin-bottom: 10px;
-  text-align: center;
+  height: 28px;
+  margin-bottom: 14px;
 }
 
-.morph-label span {
+.morph-caption {
   position: absolute;
   left: 50%;
   top: 0;
   transform: translateX(-50%);
-  font-size: 12px;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
+  white-space: nowrap;
+  padding: 4px 12px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: var(--bg);
+  font-size: 13px;
+  font-weight: 500;
   color: var(--text-dim);
-  transition: opacity 0.4s ease;
+  transition: opacity 0.2s ease;
 }
 
-.morph-label-after,
-.morph-label-scrolled {
+.morph-caption.is-changing {
   opacity: 0;
-}
-
-.morph-demo.is-scrolled .morph-label-before,
-.morph-demo.is-after .morph-label-before {
-  opacity: 0;
-}
-
-.morph-demo.is-scrolled .morph-label-scrolled {
-  opacity: 1;
-}
-
-.morph-demo.is-after .morph-label-after {
-  opacity: 1;
 }
 
 .compare-window {
-  background: var(--bg-raised);
+  background: var(--mock-bg);
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
@@ -324,25 +305,21 @@ img {
   flex-direction: column;
 }
 
-/* 16:10, not 16:9 — the window itself just needs to read as "a landscape
-   browser window," but the VIDEO inside (.morph-video, below) needs to
-   actually be 16:9 like a real YouTube video, and a strictly-16:9 outer
-   window turned out not to leave enough room for both a real-proportioned
-   video AND the description/recommended/comments panes beneath it in the
-   "before" state (the math: a 16:9 video at any width close to full-width
-   already consumes ~75-85% of a 16:9 window's own height). A slightly
-   taller window fixes that without the video looking noticeably
-   non-landscape itself. */
 .compare-window-landscape {
   width: 100%;
   aspect-ratio: 16 / 10;
 }
 
+/* Browser bar: 36px + 1px border = the 37px the geometry note assumes.
+   Right padding matches the dots' width so the URL pill sits centered. */
 .compare-dots {
   display: flex;
+  align-items: center;
   gap: 6px;
-  padding: 10px 14px;
+  height: 36px;
+  padding: 0 53px 0 14px;
   border-bottom: 1px solid var(--border);
+  background: var(--bg-raised);
   flex-shrink: 0;
 }
 
@@ -351,95 +328,425 @@ img {
   height: 9px;
   border-radius: 50%;
   background: var(--line);
+  flex-shrink: 0;
+}
+
+.mock-url {
+  margin: 0 auto;
+  width: min(46%, 320px);
+  height: 20px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--mock-bg);
+  font-size: 11px;
+  line-height: 18px;
+  text-align: center;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .morph-body {
   position: relative;
   flex: 1;
   min-height: 0;
-  /* Own clipping boundary, not just relying on .compare-window's overflow
-     (an ancestor ~30px further up, past the dots bar). The "before" state
-     never needed this — no pane's top ever went negative — but
-     .is-scrolled (below) deliberately pushes .morph-video's top negative
-     to simulate it scrolling off-screen, and without this, that negative
-     space isn't actually clipped until compare-window's OWN edge, well
-     past the dots bar: the video rendered a visible sliver bleeding into/
-     over the dots bar instead of looking cleanly gone. */
   overflow: hidden;
+  background: var(--mock-bg);
 }
 
 .morph-pane {
   position: absolute;
-  transition: left 0.85s cubic-bezier(0.65, 0, 0.35, 1), top 0.85s cubic-bezier(0.65, 0, 0.35, 1),
-    width 0.85s cubic-bezier(0.65, 0, 0.35, 1), height 0.85s cubic-bezier(0.65, 0, 0.35, 1);
+  transition: left 0.85s var(--ease), top 0.85s var(--ease), width 0.85s var(--ease), height 0.85s var(--ease),
+    padding 0.6s ease, background-color 0.5s ease, border-color 0.5s ease, opacity 0.3s ease;
 }
 
-/* Real 16:9 — like an actual YouTube video, never stretched. Height is
-   deliberately NOT set here (aspect-ratio derives it from width instead),
-   so both states below only ever specify width/left/top; the browser
-   recalculates height every frame as width transitions, so it still
-   animates smoothly. At a sensible column width a 16:9 shape naturally
-   isn't as tall as the column, same as the real extension (its own video
-   column is height-unconstrained beyond the video's real aspect ratio) —
-   so the "after" state's video is vertically CENTERED in the available
-   height (top below), not pinned to the top with the leftover space only
-   below it, matching #primary-inner's own `justify-content: center` in
-   content.css. */
-/* "Before" is real (non-split) YouTube, not a single stacked column —
-   native YouTube is ALREADY a two-column layout at this window size: a
-   wide main column (video, then title/description, then comments) on the
-   left, and a narrower recommended-videos sidebar on the right, the whole
-   thing scrolling as one page. An earlier version of this mockup showed
-   everything (recommended included) crammed into one full-width column,
-   which isn't what youtube.com actually looks like at a spacious window
-   size and undersold the "before" state. Left column: 3%-63% (60% wide).
-   Right column (sidebar): 66%-97% (31% wide) — same 3%/97% edges as the
-   left column's own 3% margin, for a consistent outer gutter on both
-   sides and the bottom (see .morph-rec/.morph-comments below; touching
-   the mockup window's border was a reported bug). */
-.morph-video {
-  aspect-ratio: 16 / 9;
-  background: #000000;
-  border-radius: 8px;
+/* YouTube's masthead: stays fixed and opaque on top, so in the "scrolled"
+   state the video slides up underneath it, as on the real page. */
+.mock-masthead {
+  position: absolute;
+  z-index: 3;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 7%;
+  padding: 0 2%;
   display: flex;
   align-items: center;
-  justify-content: center;
-  left: 3%;
-  top: 3%;
-  width: 60%;
+  justify-content: space-between;
+  gap: 4%;
+  background: var(--mock-bg);
 }
 
-.morph-desc,
-.morph-rec,
-.morph-comments {
-  background: var(--bg);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
+.mh-left,
+.mh-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.mh-menu {
   display: flex;
   flex-direction: column;
+  gap: 3px;
+}
+
+.mh-menu i {
+  display: block;
+  width: 12px;
+  height: 2px;
+  border-radius: 1px;
+  background: var(--line-strong);
+}
+
+.mh-logo {
+  display: flex;
+  align-items: center;
   gap: 5px;
+}
+
+.mh-logo-mark {
+  position: relative;
+  width: 18px;
+  height: 13px;
+  border-radius: 4px;
+  background: #ff0033;
+}
+
+.mh-logo-mark::after {
+  content: "";
+  position: absolute;
+  left: 7px;
+  top: 3.5px;
+  border-left: 5px solid #ffffff;
+  border-top: 3px solid transparent;
+  border-bottom: 3px solid transparent;
+}
+
+.mh-logo-text {
+  width: 38px;
+  height: 7px;
+  border-radius: 2px;
+  background: var(--line-strong);
+}
+
+.mh-search {
+  flex: 1;
+  max-width: 42%;
+  height: 52%;
+  display: flex;
+}
+
+.mh-search-box {
+  flex: 1;
+  border: 1px solid var(--line);
+  border-right: none;
+  border-radius: 999px 0 0 999px;
+}
+
+.mh-search-btn {
+  width: 14%;
+  min-width: 24px;
+  border: 1px solid var(--line);
+  border-radius: 0 999px 999px 0;
+  background: var(--bg-raised);
+}
+
+.mh-icon {
+  width: 13px;
+  height: 13px;
+  border-radius: 50%;
+  border: 2px solid var(--line-strong);
+}
+
+.mh-avatar {
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+}
+
+/* The player: a drifting "scene" plus YouTube-style controls whose red
+   progress bar keeps advancing in every state — the video keeps playing
+   the whole time, which is the point. */
+.morph-video {
+  aspect-ratio: 16 / 9;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #000000;
+  left: 3%;
+  top: 9.5%;
+  width: 58%;
+}
+
+.mock-scene {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse 60% 70% at 30% 35%, rgba(129, 140, 248, 0.55), transparent 70%),
+    radial-gradient(ellipse 50% 60% at 78% 70%, rgba(236, 72, 153, 0.45), transparent 70%),
+    linear-gradient(160deg, #1e1b4b, #0b1020 70%);
+  background-size: 140% 140%;
+  animation: sceneDrift 14s ease-in-out infinite alternate;
+}
+
+@keyframes sceneDrift {
+  from {
+    background-position: 0% 0%;
+  }
+  to {
+    background-position: 100% 100%;
+  }
+}
+
+.mock-controls {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  padding: 8% 3% 2.5%;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.55), transparent);
+}
+
+.mock-progress {
+  height: 3px;
+  margin-bottom: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.28);
   overflow: hidden;
 }
 
-/* The scrollable inner list inside Recommended/Comments (the channel row
-   in .morph-desc doesn't need one — it never has more content than its
-   pane can show). flex:1/min-height:0 lets it take exactly the pane's
-   remaining space below the header, in EITHER state — a tall "before"
-   sidebar naturally fits every row with nothing left to scroll, while a
-   short "after" pane only fits a handful, and overflow-y:auto (scrollbar
-   hidden — this is a decorative mockup, not a real control) is what lets
-   script.js's auto-scroll (see the JS-driven scroll comment there) move
-   through the rest via scrollTop, instead of needing separate opacity
-   show/hide rules per breakpoint/state like an earlier version had.
-   pointer-events:none keeps a visitor's own scroll/drag from fighting the
-   automated one. */
+.mock-progress span {
+  display: block;
+  height: 100%;
+  width: 18%;
+  background: #ff0033;
+  animation: mockPlay 40s linear infinite;
+}
+
+@keyframes mockPlay {
+  from {
+    width: 18%;
+  }
+  to {
+    width: 82%;
+  }
+}
+
+.mock-ctrl-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.mock-ctrl-row i {
+  display: block;
+  height: 7px;
+  border-radius: 2px;
+  background: rgba(255, 255, 255, 0.85);
+}
+
+.mock-ctrl-row .c-pause {
+  width: 3px;
+  border-radius: 0;
+  background: none;
+  border-left: 2px solid rgba(255, 255, 255, 0.9);
+  border-right: 2px solid rgba(255, 255, 255, 0.9);
+}
+
+.mock-ctrl-row .c-vol {
+  width: 14px;
+}
+
+.mock-ctrl-row .c-time {
+  width: 44px;
+  opacity: 0.55;
+}
+
+.mock-ctrl-row .c-spacer {
+  flex: 1;
+  background: none;
+}
+
+.mock-ctrl-row .c-btn {
+  width: 9px;
+}
+
+/* Main divider: invisible until the cursor hovers it, like the real one. */
+.morph-divider {
+  z-index: 2;
+  width: 3px;
+  margin-left: -1.5px;
+  border-radius: 2px;
+  background: var(--accent);
+  left: 62.5%;
+  top: 9.5%;
+  height: 87.5%;
+  opacity: 0;
+}
+
+/* Description / Recommended / Comments. Before the split they're plain
+   page content (no box, no inset — like YouTube's own title block,
+   sidebar and comments); the split gives each its pane chrome. */
+.morph-desc,
+.morph-rec,
+.morph-comments {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  overflow: hidden;
+  padding: 4px 0;
+  border: 1px solid transparent;
+  border-radius: 10px;
+  background-color: transparent;
+}
+
+.morph-demo.is-after .morph-desc,
+.morph-demo.is-after .morph-rec,
+.morph-demo.is-after .morph-comments {
+  padding: 7px 10px;
+  border-color: var(--border);
+  background-color: var(--mock-pane);
+}
+
+.mock-row-header {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 14px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.caret {
+  opacity: 0;
+  transition: opacity 0.3s ease, transform 0.25s ease;
+}
+
+.morph-demo.is-after .caret {
+  opacity: 1;
+}
+
+.morph-demo.comments-collapsed .morph-comments .caret {
+  transform: rotate(-90deg);
+}
+
+/* Recommended header: YouTube's filter chips before the split, our pane
+   label after — stacked in one grid cell and cross-faded. */
+.rec-header {
+  display: grid;
+}
+
+.rec-header > * {
+  grid-area: 1 / 1;
+  transition: opacity 0.3s ease;
+}
+
+.hdr-chips {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.hdr-chips i {
+  display: block;
+  width: 30px;
+  height: 13px;
+  border-radius: 6px;
+  background: var(--bg-raised);
+  border: 1px solid var(--border);
+}
+
+.hdr-chips i:first-child {
+  background: var(--text);
+  border-color: var(--text);
+  opacity: 0.85;
+}
+
+.hdr-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  opacity: 0;
+}
+
+.morph-demo.is-after .hdr-chips {
+  opacity: 0;
+}
+
+.morph-demo.is-after .hdr-label {
+  opacity: 1;
+}
+
+/* Title + channel row under the video; after the split it moves into the
+   description pane, which starts collapsed to just its header (the real
+   extension's default). */
+.desc-full {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  transition: opacity 0.3s ease;
+}
+
+.mock-title {
+  height: 9px;
+  border-radius: 3px;
+  background: var(--line-strong);
+}
+
+.channel-row {
+  align-items: center;
+}
+
+.channel-row .stack-lines {
+  flex: 0 1 34%;
+}
+
+.mock-sub-btn {
+  margin-left: 6px;
+  padding: 4px 9px;
+  border-radius: 999px;
+  background: var(--text);
+  color: var(--bg);
+  font-size: 9px;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.desc-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  padding: 8px 10px;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.morph-demo.is-after .desc-full {
+  opacity: 0;
+}
+
+.morph-demo.is-after .desc-header {
+  opacity: 1;
+  transition-delay: 0.35s;
+}
+
+/* Scrollable lists inside Recommended/Comments. Rows never shrink (the
+   list clips instead), and script.js scrolls them via scrollTop to show
+   they move independently of the video. pointer-events:none keeps a
+   visitor's own scrolling from fighting the automated one. */
 .morph-scroll-list {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 7px;
   overflow-y: auto;
   overflow-x: hidden;
   scroll-behavior: smooth;
@@ -451,159 +758,31 @@ img {
   display: none;
 }
 
-.morph-desc {
-  left: 3%;
-  top: 62%;
-  width: 60%;
-  height: 6%;
-}
-
-.morph-comments {
-  left: 3%;
-  top: 70%;
-  width: 60%;
-  height: 27%;
-}
-
-/* The recommended-videos sidebar — real YouTube's right column, not a
-   third stacked row. Full height (3%-97%, matching the left column's own
-   video-to-comments span), same as a real sidebar that runs the full
-   length of the page — a shorter box (an earlier version stopped at 32%
-   height, tall enough for only 5 rows) left a large empty gap under it
-   that didn't match real YouTube at all. 15 rows (HTML) fill it with a
-   comfortable margin instead of stretching 5 rows to fit; see the
-   :nth-child(n+7) rule below for why only the first 5 stay visible once
-   this shrinks into the "after" state's short pane. */
-.morph-rec {
-  left: 66%;
-  top: 3%;
-  width: 31%;
-  height: 94%;
-}
-
-/* A middle phase, between "before" and "after": simulates scrolling down
-   the native (non-split) page to reach recommendations/comments, which on
-   real YouTube scrolls the video itself off the top of the screen — the
-   exact problem the extension solves, and worth showing directly rather
-   than just claiming it in the copy. All four panes shift up by the same
-   ~62% delta (one shared page scroll, not independent per-element
-   moves) — video's real bottom edge sits at ~59.7% of the body height (3%
-   top + ~56.7% of its own height at width:60%), so 62% clears it fully
-   off-screen (clipped by .compare-window's overflow:hidden) with a small
-   safety margin. Comments/description land where the video used to be;
-   Recommended just reveals lower rows of its own (already-full) list,
-   same as a real sidebar scrolling with the page. */
-.morph-demo.is-scrolled .morph-video {
-  top: -59%;
-}
-
-.morph-demo.is-scrolled .morph-desc {
-  top: 0%;
-}
-
-.morph-demo.is-scrolled .morph-comments {
-  top: 8%;
-}
-
-.morph-demo.is-scrolled .morph-rec {
-  top: -59%;
-}
-
-.morph-demo.is-after .morph-video {
-  left: 3%;
-  /* Centered, not top-anchored — at width:58% the video's real (16:9)
-     height comes out to ~55% of the body's height (measured), so top is
-     set to roughly (100% - 55%) / 2 to split the leftover space evenly
-     above and below instead of dumping it all below the video. */
-  top: 22.5%;
-  width: 58%;
-}
-
-.morph-demo.is-after .morph-desc {
-  left: 64%;
-  top: 5%;
-  width: 33%;
-  /* Grown from 15% to fit a channel row (avatar + name/subscribers line)
-     plus 3 description lines, not just a single line — a single line at
-     15% read as too thin next to Recommended/Comments' real content. */
-  height: 17%;
-}
-
-.morph-demo.is-after .morph-rec {
-  left: 64%;
-  /* Shifted down 2% (was 23%) to clear the taller description above it;
-     height unchanged. */
-  top: 25%;
-  width: 33%;
-  height: 33%;
-}
-
-.morph-demo.is-after .morph-comments {
-  left: 64%;
-  /* Shifted down 2% (was 59%) for the same reason as Recommended above —
-     still lands with the same 3% gap under it (61+33+3=97, the
-     established bottom margin). */
-  top: 61%;
-  width: 33%;
-  height: 36%;
-}
-
-.mock-play {
-  color: var(--accent-light);
-  font-size: 28px;
-  opacity: 0.8;
-}
-
-.mock-row-header {
-  font-size: 10px;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-  color: var(--text-dim);
-}
-
-.mock-line {
-  height: 6px;
-  border-radius: 3px;
-  background: var(--line);
-}
-
 .item-row {
   display: flex;
   gap: 8px;
-  align-items: center;
+  align-items: flex-start;
+  flex-shrink: 0;
 }
-
-/* Description's channel row + extra lines only fit in the "after" state's
-   taller pane (17% — see .morph-demo.is-after .morph-desc above) — the
-   "before"/"scrolled" states keep the original compact single-line
-   preview (.morph-desc's own height there, 6%, is unchanged and far too
-   short for this). Opacity-only, matching every other reveal-on-grow
-   pane in this demo — same reasoning as the rest (harmless invisible
-   overflow, instant hide / delayed reveal so nothing lingers past its
-   shrunk container). */
-.desc-extra {
-  opacity: 0;
-  transition: opacity 0.35s ease;
-}
-
-.morph-demo.is-after .desc-extra {
-  opacity: 1;
-  transition-delay: 0.35s;
-}
-
-/* Recommended/Comments no longer need opacity show/hide rules for extra
-   rows (an earlier version had per-state, per-breakpoint :nth-child
-   rules for this) — .morph-scroll-list's own flex+overflow above already
-   shows exactly what fits at whatever size the pane currently is, in
-   every state, and script.js's auto-scroll (only while "after" is
-   active) is what reveals the rest by actually scrolling to it, the same
-   way a real list would. */
 
 .stack-thumb {
-  width: 46px;
+  position: relative;
+  width: 50px;
   height: 28px;
   border-radius: 5px;
   flex-shrink: 0;
+}
+
+/* Duration badge. */
+.stack-thumb::after {
+  content: "";
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  width: 12px;
+  height: 5px;
+  border-radius: 2px;
+  background: rgba(0, 0, 0, 0.6);
 }
 
 .avatar {
@@ -613,61 +792,232 @@ img {
   flex-shrink: 0;
 }
 
-/* Muted color placeholders instead of plain gray boxes — thumbnails and
-   avatars are the one part of a real YouTube page that actually has
-   color, so giving these mockups a little of that (while keeping text
-   lines neutral gray, matching real metadata text) reads as more like an
-   actual page and less like a wireframe. */
-.thumb-amber {
-  background: linear-gradient(135deg, rgba(245, 158, 11, 0.55), rgba(217, 119, 6, 0.3));
-}
-
-.thumb-rose {
-  background: linear-gradient(135deg, rgba(244, 63, 94, 0.55), rgba(190, 24, 93, 0.3));
-}
-
-.thumb-cyan {
-  background: linear-gradient(135deg, rgba(34, 211, 238, 0.55), rgba(8, 145, 178, 0.3));
-}
-
-.thumb-emerald {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.55), rgba(5, 150, 105, 0.3));
-}
-
-.thumb-violet {
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.55), rgba(109, 40, 217, 0.3));
-}
-
-.thumb-sky {
-  background: linear-gradient(135deg, rgba(56, 189, 248, 0.55), rgba(2, 132, 199, 0.3));
-}
-
-.thumb-lime {
-  background: linear-gradient(135deg, rgba(163, 230, 53, 0.55), rgba(101, 163, 13, 0.3));
-}
-
 .stack-lines {
   flex: 1;
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 5px;
+  gap: 4px;
+  padding-top: 1px;
 }
 
-/* Width is set per-line inline in the HTML (varied per row) rather than a
-   single fixed class — real text lines aren't all the same length, and a
-   uniform width for every row's second line read as too mechanical/
-   wireframe-y next to the colored thumbnails. */
+/* Widths are set per line inline in the HTML, varied like real text. */
 .stack-lines span {
-  height: 6px;
+  height: 5px;
   border-radius: 3px;
   background: var(--line);
 }
 
+.stack-lines .t {
+  background: var(--line-strong);
+}
+
+.thumb-amber {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.7), rgba(217, 119, 6, 0.35));
+}
+
+.thumb-rose {
+  background: linear-gradient(135deg, rgba(244, 63, 94, 0.7), rgba(190, 24, 93, 0.35));
+}
+
+.thumb-cyan {
+  background: linear-gradient(135deg, rgba(34, 211, 238, 0.7), rgba(8, 145, 178, 0.35));
+}
+
+.thumb-emerald {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.7), rgba(5, 150, 105, 0.35));
+}
+
+.thumb-violet {
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.7), rgba(109, 40, 217, 0.35));
+}
+
+.thumb-sky {
+  background: linear-gradient(135deg, rgba(56, 189, 248, 0.7), rgba(2, 132, 199, 0.35));
+}
+
+.thumb-lime {
+  background: linear-gradient(135deg, rgba(163, 230, 53, 0.7), rgba(101, 163, 13, 0.35));
+}
+
+/* Fake cursor: an arrow, swapped for a resize glyph over the divider. Its
+   left/top is the pointer's hotspot. Moves with the same duration/easing
+   as the panes so a drag stays glued to the divider. */
+.mock-cursor {
+  position: absolute;
+  z-index: 4;
+  width: 16px;
+  height: 16px;
+  left: 86%;
+  top: 104%;
+  opacity: 0;
+  pointer-events: none;
+  transition: left 0.85s var(--ease), top 0.85s var(--ease), opacity 0.3s ease;
+}
+
+.mock-cursor svg {
+  position: absolute;
+  width: 16px;
+  height: 16px;
+  transition: opacity 0.15s ease, transform 0.12s ease;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.35));
+}
+
+.cur-arrow {
+  left: 0;
+  top: 0;
+  transform-origin: 0 0;
+}
+
+.cur-resize {
+  left: -8px;
+  top: -8px;
+  opacity: 0;
+}
+
+.morph-demo.cursor-divider .mock-cursor,
+.morph-demo.cursor-comments .mock-cursor,
+.morph-demo.cursor-collapsed .mock-cursor {
+  opacity: 1;
+}
+
+.morph-demo.cursor-divider .cur-arrow {
+  opacity: 0;
+}
+
+.morph-demo.cursor-divider .cur-resize {
+  opacity: 1;
+}
+
+.morph-demo.cursor-press .cur-arrow {
+  transform: scale(0.8);
+}
+
+/* ---- State: scrolled (regular YouTube, page scrolled down) ----
+   Everything moves up by the same 60% (one page scroll); the video ends
+   fully hidden behind the masthead. Sidebar and comments grow downward
+   so the page still reads as continuing past the bottom edge. */
+.morph-demo.is-scrolled .morph-video {
+  top: -50.5%;
+}
+
+.morph-demo.is-scrolled .morph-desc {
+  top: 8%;
+}
+
+.morph-demo.is-scrolled .morph-comments {
+  top: 21%;
+  height: 76%;
+}
+
+.morph-demo.is-scrolled .morph-rec {
+  top: -50.5%;
+  height: 147.5%;
+}
+
+/* ---- State: after (the split) ----
+   Uniform ~10px spacing (1% across, 1.7% down). Video centered in the
+   content area below the masthead (7%-100%, center 53.5%). */
+.morph-demo.is-after .morph-video {
+  left: 1%;
+  top: 21%;
+  width: 67%;
+}
+
+.morph-demo.is-after .morph-divider {
+  left: 68.5%;
+  top: 8.7%;
+  height: 89.6%;
+}
+
+.morph-demo.is-after .morph-desc {
+  left: 69%;
+  top: 8.7%;
+  width: 30%;
+  height: 5.5%;
+}
+
+.morph-demo.is-after .morph-rec {
+  left: 69%;
+  top: 15.9%;
+  width: 30%;
+  height: 40.3%;
+}
+
+.morph-demo.is-after .morph-comments {
+  left: 69%;
+  top: 57.9%;
+  width: 30%;
+  height: 40.4%;
+}
+
+/* Divider dragged left: horizontal only (left/width), so it combines
+   cleanly with the vertical-only collapse rules below. */
+.morph-demo.is-after.is-dragged .morph-video {
+  top: 28.5%;
+  width: 52%;
+}
+
+.morph-demo.is-after.is-dragged .morph-divider {
+  left: 53.5%;
+}
+
+.morph-demo.is-after.is-dragged .morph-desc,
+.morph-demo.is-after.is-dragged .morph-rec,
+.morph-demo.is-after.is-dragged .morph-comments {
+  left: 54%;
+  width: 45%;
+}
+
+/* Comments collapsed to its header; Recommended grows into the space. */
+.morph-demo.is-after.comments-collapsed .morph-rec {
+  height: 75.2%;
+}
+
+.morph-demo.is-after.comments-collapsed .morph-comments {
+  top: 92.8%;
+  height: 5.5%;
+}
+
+/* Cursor positions (hotspot). Order matters: .is-dragged must come after
+   .cursor-divider so it wins at equal specificity. */
+.morph-demo.cursor-divider .mock-cursor {
+  left: 68.5%;
+  top: 50%;
+}
+
+.morph-demo.cursor-divider .morph-divider {
+  opacity: 1;
+}
+
+.morph-demo.is-dragged .mock-cursor {
+  left: 53.5%;
+}
+
+.morph-demo.cursor-comments .mock-cursor {
+  left: 78%;
+  top: 60.8%;
+}
+
+.morph-demo.cursor-collapsed .mock-cursor {
+  left: 78%;
+  top: 95.5%;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .morph-pane,
-  .morph-label span {
+  .morph-caption,
+  .mock-cursor,
+  .desc-full,
+  .desc-header,
+  .caret,
+  .rec-header > * {
     transition: none !important;
+  }
+
+  .mock-scene,
+  .mock-progress span {
+    animation: none;
   }
 
   .morph-scroll-list {
@@ -868,135 +1218,121 @@ img {
 }
 
 @media (max-width: 640px) {
-  /* .compare-dots (the traffic-light bar) has a fixed PIXEL height —
-     at desktop size that's a small sliver of the window's total height,
-     but at phone width it eats a much bigger fraction of it, leaving
-     .morph-body (everything below the dots) with meaningfully LESS room
-     than the percentage math below it assumes. Measured, not guessed: the
-     video (aspect-ratio-driven, width-based) ended up consuming ~84% of
-     .morph-body's real height here instead of the ~72% the desktop
-     numbers implied, leaving the 3 panes beneath it genuinely overlapping
-     the video itself. A taller window specifically at phone width is the
-     fix — same idea as the desktop-vs-16:9 change above, just needing a
-     second, larger correction at this size. */
+  /* Mobile mockup: a taller window (the fixed 37px browser bar eats a
+     bigger share of a small window). .morph-body is ~1.26x as wide as
+     tall here, so a 16:9 video's height is ~0.71x its width percentage.
+     Before/scrolled use a single stacked column (a phone-width box has no
+     room for YouTube's sidebar); after keeps the side-by-side split. */
   .compare-window-landscape {
     aspect-ratio: 4 / 3.6;
   }
 
-  /* "Before" state panes need their own top/height percentages at this
-     width and aspect-ratio — the desktop numbers above (tuned against a
-     16/10 window) leave far too little room here now that the "before"
-     panes actually show real content (a thumbnail/avatar row, not just a
-     header). Measured: at the desktop percentages, .morph-desc/.morph-rec/
-     .morph-comments came out at 16-26px tall, well under the ~30/48/40px
-     their header+row+padding actually need at mobile's own (smaller)
-     padding/thumbnail sizes, clipping content instead of showing it. The
-     video's own width is also dialed back from 74% to 68% here to free up
-     the extra vertical room these taller panes need. */
-  .morph-video {
-    left: 16%;
-    width: 68%;
+  .morph-caption {
+    font-size: 12px;
   }
 
-  /* The "after" state's centered top (22.5%, set above for the desktop
-     16/10 window) doesn't carry over here — mobile's window is a
-     different overall shape (4/3.6), so the same 58%-wide 16:9 video
-     comes out a different height fraction of the body (measured: ~40%
-     here vs ~55% on desktop), needing its own centered top. */
-  .morph-demo.is-after .morph-video {
-    top: 30%;
+  .compare-dots {
+    padding-right: 14px;
   }
 
-  /* Description's after-state height (17%, set above) assumed desktop's
-     much taller body — at mobile's much shorter one, the same percentage
-     wasn't enough actual pixels for the channel row + extra lines, and
-     flexbox was silently shrinking the last line to 0 height rather than
-     visibly overflowing. Mobile gets its own shorter, avatar+1-line
-     version instead of trying to cram in every line phone-cramped — same
-     "show less detail on mobile" pattern already used for Recommended/
-     Comments' single-row-only limit below. Recommended/Comments then
-     shift down to clear the new (still taller-than-original) height. */
-  .morph-demo.is-after .morph-desc {
-    height: 25%;
+  .mock-url {
+    width: 60%;
+    font-size: 10px;
   }
 
-  .desc-extra:last-child {
+  .mock-masthead {
+    height: 9%;
+  }
+
+  .mh-menu,
+  .mh-search,
+  .mh-icon {
     display: none;
   }
 
-  .morph-demo.is-after .morph-rec {
-    top: 32%;
+  .mh-logo-mark {
+    width: 14px;
+    height: 10px;
+    border-radius: 3px;
   }
 
-  .morph-demo.is-after .morph-comments {
-    top: 68%;
-    height: 30%;
+  .mh-logo-mark::after {
+    left: 5px;
+    top: 2px;
+    border-left-width: 4px;
   }
 
-  /* Full-width stacked, NOT the desktop two-column (video+desc+comments
-     in a left column, Recommended as a right sidebar) — a phone-width
-     mockup box just doesn't have room to show a real sidebar at a
-     legible size, so this keeps the older single-column "before" story
-     at this breakpoint (still a fair simplification: real YouTube itself
-     eventually stacks fully at a narrow enough width too). Left/width
-     need to be set here explicitly now, not just top/height — the base
-     (desktop) rules above changed to the two-column left:66%/width:31%
-     sidebar position for .morph-rec, and left:3%/width:60% (left-column
-     width) for .morph-desc/.morph-comments, neither of which mobile
-     should inherit. */
-  .morph-desc {
-    left: 3%;
-    top: 53%;
-    width: 94%;
-    height: 12%;
+  .mh-logo-text {
+    width: 28px;
+    height: 5px;
   }
 
-  .morph-rec {
-    left: 3%;
-    top: 66%;
-    width: 94%;
-    height: 18%;
+  .mh-avatar {
+    width: 14px;
+    height: 14px;
   }
 
+  .mock-controls {
+    padding-bottom: 3%;
+  }
+
+  .mock-progress {
+    margin-bottom: 4px;
+  }
+
+  .mock-ctrl-row {
+    gap: 6px;
+  }
+
+  .mock-ctrl-row i {
+    height: 5px;
+  }
+
+  .mock-ctrl-row .c-time {
+    width: 26px;
+  }
+
+  .mock-row-header {
+    min-height: 12px;
+    font-size: 8px;
+  }
+
+  .hdr-chips i {
+    width: 22px;
+    height: 11px;
+  }
+
+  .morph-desc,
+  .morph-rec,
   .morph-comments {
-    left: 3%;
-    top: 85%;
-    width: 94%;
-    height: 15%;
+    gap: 5px;
+    padding: 2px 0;
   }
 
-  /* .is-scrolled at this breakpoint: mobile's single stacked column (no
-     sidebar — see above) means ALL FOUR panes are literally one
-     continuous vertical stack, so all four shift by the same delta here,
-     not just video+desc+comments like the desktop two-column version.
-     Measured (not reused from desktop, a totally different aspect-ratio
-     and stack order): video's own before-state bottom comes out to
-     ~50.1% of the body height here, so a 52% shift clears it fully. */
-  .morph-demo.is-scrolled .morph-video {
-    top: -49%;
+  .morph-demo.is-after .morph-desc,
+  .morph-demo.is-after .morph-rec,
+  .morph-demo.is-after .morph-comments {
+    padding: 5px 7px;
   }
 
-  .morph-demo.is-scrolled .morph-desc {
-    top: 1%;
+  .desc-full {
+    gap: 4px;
   }
 
-  .morph-demo.is-scrolled .morph-rec {
-    top: 14%;
+  .mock-title {
+    height: 6px;
   }
 
-  .morph-demo.is-scrolled .morph-comments {
-    top: 33%;
-  }
-
-  /* The "after" state's Recommended/Comments panes (sized as a fraction
-     of the whole window, unrelated to the video's own aspect-ratio-driven
-     size above) don't have room for a second item-row at phone width —
-     measured, not assumed. The scroll-list auto-scroll (script.js) isn't
-     worth it at this size either, so rows past the first are simply
-     removed from layout rather than left to (not) scroll. */
-  .morph-rec .item-row + .item-row,
-  .morph-comments .item-row + .item-row {
+  .mock-sub-btn {
     display: none;
+  }
+
+  .desc-header {
+    padding: 5px 7px;
+  }
+
+  .morph-scroll-list {
+    gap: 5px;
   }
 
   .stack-thumb {
@@ -1009,11 +1345,150 @@ img {
     height: 16px;
   }
 
-  .morph-desc,
-  .morph-rec,
+  .stack-lines span {
+    height: 4px;
+  }
+
+  .mock-cursor,
+  .mock-cursor svg {
+    width: 13px;
+    height: 13px;
+  }
+
+  .cur-resize {
+    left: -6.5px;
+    top: -6.5px;
+  }
+
+  /* Before (stacked). */
+  .morph-video {
+    left: 20%;
+    top: 11%;
+    width: 60%;
+  }
+
+  .morph-desc {
+    left: 3%;
+    top: 55.5%;
+    width: 94%;
+    height: 11.5%;
+  }
+
+  .morph-rec {
+    left: 3%;
+    top: 68.5%;
+    width: 94%;
+    height: 17%;
+  }
+
   .morph-comments {
-    padding: 5px 8px;
-    gap: 4px;
+    left: 3%;
+    top: 87.5%;
+    width: 94%;
+    height: 12.5%;
+  }
+
+  .morph-divider {
+    left: 60.25%;
+    top: 11%;
+    height: 87%;
+  }
+
+  /* Scrolled: everything up by 47%; the video ends behind the masthead. */
+  .morph-demo.is-scrolled .morph-video {
+    top: -36%;
+  }
+
+  .morph-demo.is-scrolled .morph-desc {
+    top: 8.5%;
+  }
+
+  .morph-demo.is-scrolled .morph-rec {
+    top: 21.5%;
+    height: 17%;
+  }
+
+  .morph-demo.is-scrolled .morph-comments {
+    top: 40.5%;
+    height: 59.5%;
+  }
+
+  /* After: ~5px spacing (1.5% across, 2% down), content area 11%-98%. */
+  .morph-demo.is-after .morph-video {
+    left: 1.5%;
+    top: 33.8%;
+    width: 58%;
+  }
+
+  .morph-demo.is-after .morph-divider {
+    left: 60.25%;
+    top: 11%;
+    height: 87%;
+  }
+
+  .morph-demo.is-after .morph-desc {
+    left: 61%;
+    top: 11%;
+    width: 37.5%;
+    height: 9%;
+  }
+
+  .morph-demo.is-after .morph-rec {
+    left: 61%;
+    top: 22%;
+    width: 37.5%;
+    height: 37%;
+  }
+
+  .morph-demo.is-after .morph-comments {
+    left: 61%;
+    top: 61%;
+    width: 37.5%;
+    height: 37%;
+  }
+
+  .morph-demo.is-after.is-dragged .morph-video {
+    top: 38.9%;
+    width: 44%;
+  }
+
+  .morph-demo.is-after.is-dragged .morph-divider {
+    left: 46.25%;
+  }
+
+  .morph-demo.is-after.is-dragged .morph-desc,
+  .morph-demo.is-after.is-dragged .morph-rec,
+  .morph-demo.is-after.is-dragged .morph-comments {
+    left: 47%;
+    width: 51.5%;
+  }
+
+  .morph-demo.is-after.comments-collapsed .morph-rec {
+    height: 65%;
+  }
+
+  .morph-demo.is-after.comments-collapsed .morph-comments {
+    top: 89%;
+    height: 9%;
+  }
+
+  .morph-demo.cursor-divider .mock-cursor {
+    left: 60.25%;
+    top: 50%;
+  }
+
+  .morph-demo.is-dragged .mock-cursor {
+    left: 46.25%;
+  }
+
+  .morph-demo.cursor-comments .mock-cursor {
+    left: 74%;
+    top: 65%;
+  }
+
+  .morph-demo.cursor-collapsed .mock-cursor {
+    left: 74%;
+    top: 93.5%;
   }
 
   .nav nav {
