@@ -155,9 +155,16 @@ html.yt-split-active #columns {
 html.yt-split-active #cinematics,
 html.yt-split-active #cinematics-container {
   position: fixed !important;
-  inset: 0 !important;
-  width: 100vw !important;
-  height: 100vh !important;
+  /* Extends past the window by 3x the blur radius on every side: a CSS
+     blur fades out over ~3 standard deviations at the element's edges, so
+     this keeps that whole fade off-screen at any window size or blur
+     setting, and the glow keeps its full color right to the window edges.
+     (A fixed scale(1.25) used to do this job and fell short top/bottom:
+     it only pushed the edges ~135px off-screen on a 1080px-tall window
+     against a ~290px fade.) */
+  inset: calc(-3 * var(--split-ambient-blur)) !important;
+  width: auto !important;
+  height: auto !important;
   max-width: none !important;
   max-height: none !important;
   margin: 0 !important;
@@ -170,11 +177,9 @@ html.yt-split-active #cinematics-container {
      Blur comes FIRST: YouTube's own blur is sized for a glow around the
      video, and stretched across the whole window it left visible bands
      ("lines flowing through"), which the brightness/saturation boost made
-     worse. Blurring before boosting smooths the gradient out; the slight
-     scale pushes the blur's darker, faded edges off-screen. */
+     worse. Blurring before boosting smooths the gradient out. */
   filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
     brightness(var(--split-ambient-brightness)) !important;
-  transform: scale(1.25) !important;
 }
 
 /* Responsiveness: YouTube samples the video every so often and slowly
@@ -185,6 +190,12 @@ html.yt-split-active #cinematics-container {
 html.yt-split-active #cinematics *,
 html.yt-split-active #cinematics-container * {
   transition-duration: var(--split-ambient-fade) !important;
+  /* Any fade-out mask YouTube puts on its glow (made to taper off
+     around the video) would dim the window's edges once stretched
+     full-window, so none: the glow stays the same color out to the
+     edges. */
+  -webkit-mask-image: none !important;
+  mask-image: none !important;
 }
 
 /* Dithering: a faint, fine grain over the glow breaks up any remaining
