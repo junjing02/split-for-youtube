@@ -799,6 +799,203 @@
     widenedAncestors = [];
   }
 
+  // ---- Ambient light ----
+  // Our own ambient glow behind the whole window, modeled on the "Ambient
+  // light for YouTube" extension (WesselKroos/youtube-ambilight):
+  //   1. Every frame (capped at AMBIENT_FRAME_MS), the playing <video> is
+  //      drawn into a tiny sample canvas.
+  //   2. That sample is drawn AMBIENT_LEVELS times into a low-res "frame"
+  //      canvas covering the window (plus overscan), each copy scaled a bit
+  //      larger around the video's real on-screen position, largest first,
+  //      so the colors along each edge of the video spread outward from
+  //      that edge (the classic Ambilight look) all the way to the window
+  //      edges.
+  //   3. The frame is blurred into the visible canvas (cheap at this size)
+  //      and blended over the previous one (AMBIENT_BLEND) to smooth
+  //      flicker without noticeable lag. CSS adds a little more blur plus
+  //      brightness/saturation (--split-ambient-* tokens in content.css),
+  //      and a separate grain layer hides color banding.
+  // It follows YouTube's own "Ambient mode" setting (and dark theme), and
+  // YouTube's native glow is hidden (content.css). Replaces an earlier
+  // approach of restyling YouTube's own #cinematics glow, which lagged
+  // (YouTube samples the video only now and then and slowly cross-fades)
+  // and couldn't be made to cover the window cleanly.
+  const AMBIENT_ID = "yt-split-ambient";
+  const AMBIENT_GRAIN_ID = "yt-split-ambient-grain";
+  const AMBIENT_ON_CLASS = "yt-split-ambient-on";
+  const AMBIENT_SAMPLE_W = 64;
+  const AMBIENT_SAMPLE_H = 36;
+  const AMBIENT_CANVAS_SCALE = 1 / 8; // canvas px per CSS px
+  const AMBIENT_CANVAS_BLUR = 4; // in canvas px (~32 CSS px)
+  const AMBIENT_LEVELS = 12;
+  const AMBIENT_BLEND = 0.5; // weight of each new frame over the previous
+  const AMBIENT_FRAME_MS = 1000 / 30;
+  const AMBIENT_CHECK_MS = 500; // how often to re-check YouTube's setting
+  const AMBIENT_STILL_FRAMES = 12; // redraws after pausing before idling
+  // Start of the path in YouTube's "Ambient mode" settings-menu icon.
+  const AMBIENT_MENU_ICON = "M21 7v10H3V7h18m1-1H2v12h20V6z";
+
+  let ambient = null;
+
+  // Whether YouTube's own Ambient mode is on. Primary signal: the player
+  // settings menu's "Ambient mode" item (aria-checked), found by its icon
+  // or English label. Fallback, if the menu isn't built yet: whether
+  // YouTube has set up its own glow canvas. Dark theme only, like YouTube.
+  function isYouTubeAmbientModeOn() {
+    if (!document.documentElement.hasAttribute("dark")) return false;
+    for (const item of document.querySelectorAll(".ytp-settings-menu .ytp-menuitem")) {
+      const path = item.querySelector("path");
+      const d = path ? path.getAttribute("d") || "" : "";
+      const label = item.querySelector(".ytp-menuitem-label");
+      if (d.startsWith(AMBIENT_MENU_ICON) || (label && /ambient/i.test(label.textContent))) {
+        return item.getAttribute("aria-checked") === "true";
+      }
+    }
+    const cinematics = document.querySelector("#cinematics, #cinematics-container");
+    return !!(cinematics && cinematics.querySelector("canvas"));
+  }
+
+  function setAmbientOn(on) {
+    if (!ambient || ambient.on === on) return;
+    ambient.on = on;
+    ambient.fresh = true;
+    document.documentElement.classList.toggle(AMBIENT_ON_CLASS, on);
+  }
+
+  function ensureAmbient(columns) {
+    if (!ambient) {
+      const root = document.createElement("div");
+      root.id = AMBIENT_ID;
+      root.setAttribute("aria-hidden", "true");
+      const canvas = document.createElement("canvas");
+      root.appendChild(canvas);
+      const grain = document.createElement("div");
+      grain.id = AMBIENT_GRAIN_ID;
+      grain.setAttribute("aria-hidden", "true");
+      const sample = document.createElement("canvas");
+      sample.width = AMBIENT_SAMPLE_W;
+      sample.height = AMBIENT_SAMPLE_H;
+      const frame = document.createElement("canvas");
+      ambient = {
+        root,
+        grain,
+        canvas,
+        ctx: canvas.getContext("2d"),
+        sample,
+        sctx: sample.getContext("2d"),
+        frame,
+        fctx: frame.getContext("2d"),
+        rafId: 0,
+        on: false,
+        fresh: true,
+        lastDraw: 0,
+        lastCheck: 0,
+        lastKey: "",
+        stillFrames: 0,
+      };
+    }
+    // Glow before grain in tree order: both are z-index: -1, so tree order
+    // decides which paints on top (the grain, overlay-blended onto the glow).
+    if (ambient.root.parentElement !== columns) columns.appendChild(ambient.root);
+    if (ambient.grain.previousElementSibling !== ambient.root) ambient.root.after(ambient.grain);
+    if (!ambient.rafId) ambient.rafId = requestAnimationFrame(ambientTick);
+  }
+
+  function teardownAmbient() {
+    document.documentElement.classList.remove(AMBIENT_ON_CLASS);
+    if (!ambient) return;
+    if (ambient.rafId) cancelAnimationFrame(ambient.rafId);
+    ambient.root.remove();
+    ambient.grain.remove();
+    ambient = null;
+  }
+
+  function ambientTick(now) {
+    if (!ambient) return;
+    ambient.rafId = 0;
+    if (!ambient.root.isConnected) return;
+    ambient.rafId = requestAnimationFrame(ambientTick);
+
+    if (now - ambient.lastCheck >= AMBIENT_CHECK_MS) {
+      ambient.lastCheck = now;
+      setAmbientOn(isYouTubeAmbientModeOn());
+    }
+    if (!ambient.on || now - ambient.lastDraw < AMBIENT_FRAME_MS - 2) return;
+
+    const video = document.querySelector("#primary video");
+    const player = document.querySelector("#player-container-outer");
+    if (!video || !player || video.readyState < 2) return;
+    const rect = player.getBoundingClientRect();
+    if (rect.width <= 0 || rect.height <= 0) return;
+
+    // While paused with nothing moving, keep redrawing only until the
+    // frame blending has settled, then idle.
+    const key = [rect.left, rect.top, rect.width, rect.height, innerWidth, innerHeight, video.currentTime].join();
+    if (key !== ambient.lastKey || !video.paused) {
+      ambient.lastKey = key;
+      ambient.stillFrames = 0;
+    } else if (++ambient.stillFrames > AMBIENT_STILL_FRAMES && !ambient.fresh) {
+      return;
+    }
+    ambient.lastDraw = now;
+    drawAmbient(video, rect);
+  }
+
+  function drawAmbient(video, rect) {
+    const a = ambient;
+    const box = a.root.getBoundingClientRect();
+    const W = Math.max(1, Math.round(box.width * AMBIENT_CANVAS_SCALE));
+    const H = Math.max(1, Math.round(box.height * AMBIENT_CANVAS_SCALE));
+    if (a.canvas.width !== W || a.canvas.height !== H) {
+      a.canvas.width = a.frame.width = W;
+      a.canvas.height = a.frame.height = H;
+      a.fresh = true;
+    }
+
+    try {
+      a.sctx.drawImage(video, 0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
+    } catch (e) {
+      return; // frame not drawable right now (e.g. mid source switch)
+    }
+
+    // Video position in canvas pixels, and the scale at which a copy
+    // centered on it covers the whole canvas.
+    const w = rect.width * AMBIENT_CANVAS_SCALE;
+    const h = rect.height * AMBIENT_CANVAS_SCALE;
+    const cx = (rect.left - box.left) * AMBIENT_CANVAS_SCALE + w / 2;
+    const cy = (rect.top - box.top) * AMBIENT_CANVAS_SCALE + h / 2;
+    const maxScale =
+      Math.max(Math.max(cx, W - cx) / (w / 2), Math.max(cy, H - cy) / (h / 2), 1) * 1.02;
+    for (let i = AMBIENT_LEVELS - 1; i >= 0; i--) {
+      const scale = Math.pow(maxScale, i / (AMBIENT_LEVELS - 1));
+      const lw = w * scale;
+      const lh = h * scale;
+      a.fctx.drawImage(a.sample, cx - lw / 2, cy - lh / 2, lw, lh);
+    }
+
+    a.ctx.save();
+    if (a.fresh) a.ctx.clearRect(0, 0, W, H);
+    a.ctx.globalAlpha = a.fresh ? 1 : AMBIENT_BLEND;
+    a.ctx.filter = `blur(${AMBIENT_CANVAS_BLUR}px)`;
+    a.ctx.drawImage(a.frame, 0, 0);
+    a.ctx.restore();
+    a.fresh = false;
+  }
+
+  // Toggling "Ambient mode" in the player's settings menu: re-check on the
+  // next frame instead of waiting out AMBIENT_CHECK_MS. The short delay
+  // lets YouTube update the item's aria-checked first.
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (!ambient || !e.target.closest || !e.target.closest(".ytp-menuitem")) return;
+      setTimeout(() => {
+        if (ambient) ambient.lastCheck = 0;
+      }, 60);
+    },
+    true
+  );
+
   function ensureLayout() {
     if (!isWatchPage()) {
       // Self-heal: if this ever runs while we're not on a watch page (e.g.
@@ -845,6 +1042,8 @@
       sidePane.id = "yt-split-side-pane";
       columns.appendChild(sidePane);
     }
+
+    ensureAmbient(columns);
 
     // #below (title/channel/stats/description) moves out of the video
     // column entirely and into a small collapsible section here.
@@ -894,10 +1093,12 @@
     }
 
     // Sweep any other direct child of #columns (anything not primary,
-    // resizer, or sidePane itself) into the side pane so it can't end up
-    // stranded in an implicit, unstyled grid cell.
+    // resizer, sidePane, or our fixed-position ambient light layers) into
+    // the side pane so it can't end up stranded in an implicit, unstyled
+    // grid cell.
     Array.from(columns.children).forEach((child) => {
       if (child === primary || child === resizer || child === sidePane) return;
+      if (child.id === AMBIENT_ID || child.id === AMBIENT_GRAIN_ID) return;
       moveNode(child, sidePane);
     });
 
@@ -950,6 +1151,8 @@
 
     const resizer = document.getElementById("yt-split-resizer");
     if (resizer) resizer.remove();
+
+    teardownAmbient();
   }
 
   function nudgePlayerResize() {

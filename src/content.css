@@ -38,14 +38,17 @@ html.yt-split-active {
   /* The single spacing value used for every edge and gap in the layout —
      see #columns' padding below. */
   --split-gap: clamp(4px, 0.5vw, 6px);
-  /* Ambient-mode glow strength (see the #cinematics rule below). 1 = as
-     YouTube draws it; raise either to make the glow more obvious. */
-  --split-ambient-brightness: 1.45;
-  --split-ambient-saturate: 1.6;
-  /* Extra blur for the stretched glow; higher = smoother, softer. */
-  --split-ambient-blur: 96px;
-  /* How fast the glow fades to the video's newest frame; lower = snappier. */
-  --split-ambient-fade: 0.4s;
+  /* Ambient light (our own renderer: content.js "Ambient light" section,
+     styled by #yt-split-ambient below). */
+  --split-ambient-opacity: 0.7; /* overall strength, 0-1 */
+  --split-ambient-brightness: 1;
+  --split-ambient-saturate: 1.3;
+  --split-ambient-blur: 24px; /* extra softening on top of the canvas blur */
+  --split-ambient-grain: 0.35; /* anti-banding grain, 0 = off */
+  /* How far the glow extends past the window on each side, so the blurred
+     canvas edges fade out off-screen (keep > ~3x --split-ambient-blur +
+     ~100px for the canvas's own blur). */
+  --split-ambient-overscan: 180px;
 }
 
 html.yt-split-active:not([dark]) {
@@ -135,86 +138,85 @@ html.yt-split-active #columns {
      markup) and needs its own diagnosis, not a background change here. */
   background: transparent !important;
   align-items: stretch !important;
-  /* Own stacking context, so the ambient-mode glow below (z-index: -1)
+  /* Own stacking context, so the ambient light glow below (z-index: -1)
      paints just above the page background but under the video and panes,
      instead of dropping behind YouTube's opaque page background. */
   isolation: isolate;
 }
 
-/* Ambient mode ("cinematics": YouTube's blurred, enlarged copy of the
-   video drawn behind the player) glows across the WHOLE window, by
-   request, not just around the video. Natively it sits inside the video
-   column, whose overflow: hidden (and the player box's) clipped it to the
-   video's area. position: fixed escapes those clips (they're not its
-   containing block), inset: 0 stretches it over the viewport (the blur
-   hides the stretch), and z-index: -1 inside #columns' stacking context
-   (above) keeps it behind all real content; the translucent panes let it
-   show through. Only the outer element is repositioned; YouTube's own
-   scale/blur on its inner canvas are left alone. Two ids because YouTube
-   has used both names for this element. */
+/* Ambient light: our own renderer (content.js "Ambient light" section),
+   modeled on the "Ambient light for YouTube" extension. A low-res canvas
+   behind the whole window is redrawn from the video every frame, with
+   stacked, progressively larger copies spreading out from the video's
+   actual position, so each part of the background takes the color of the
+   nearest video edge. It follows YouTube's own Ambient mode toggle (and
+   dark theme): content.js toggles html.yt-split-ambient-on.
+
+   Replaces restyling YouTube's own glow (#cinematics), which lagged
+   (YouTube only samples the video now and then and slowly cross-fades)
+   and couldn't be made to cover the window cleanly. YouTube's glow is
+   hidden with visibility (not display: none), so it stays in the DOM for
+   content.js's on/off fallback check. */
 html.yt-split-active #cinematics,
-html.yt-split-active #cinematics-container {
-  position: fixed !important;
-  /* Extends past the window by 3x the blur radius on every side: a CSS
-     blur fades out over ~3 standard deviations at the element's edges, so
-     this keeps that whole fade off-screen at any window size or blur
-     setting, and the glow keeps its full color right to the window edges.
-     (A fixed scale(1.25) used to do this job and fell short top/bottom:
-     it only pushed the edges ~135px off-screen on a 1080px-tall window
-     against a ~290px fade.) */
-  inset: calc(-3 * var(--split-ambient-blur)) !important;
-  width: auto !important;
-  height: auto !important;
-  max-width: none !important;
-  max-height: none !important;
-  margin: 0 !important;
-  z-index: -1 !important;
-  pointer-events: none !important;
-  /* Stronger glow, by request (tune via the --split-ambient-* tokens at
-     the top). A filter, not opacity: YouTube animates this element's own
-     opacity to fade the glow out when ambient mode is turned off, so
-     forcing opacity could leave a stale frame showing.
-     Blur comes FIRST: YouTube's own blur is sized for a glow around the
-     video, and stretched across the whole window it left visible bands
-     ("lines flowing through"), which the brightness/saturation boost made
-     worse. Blurring before boosting smooths the gradient out. */
-  filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
-    brightness(var(--split-ambient-brightness)) !important;
+html.yt-split-active #cinematics-container,
+html.yt-split-active #cinematics-wide-container,
+html.yt-split-active #cinematics-full-bleed-container {
+  visibility: hidden !important;
 }
 
-/* Responsiveness: YouTube samples the video every so often and slowly
-   cross-fades its glow canvases from the old frame to the new one (an
-   inline CSS transition), so the glow trailed noticeably behind scene
-   changes. A short fade follows the video much more closely; !important
-   beats the inline style. Tune via --split-ambient-fade. */
-html.yt-split-active #cinematics *,
-html.yt-split-active #cinematics-container * {
-  transition-duration: var(--split-ambient-fade) !important;
-  /* Any fade-out mask YouTube puts on its glow (made to taper off
-     around the video) would dim the window's edges once stretched
-     full-window, so none: the glow stays the same color out to the
-     edges. */
-  -webkit-mask-image: none !important;
-  mask-image: none !important;
-}
-
-/* Dithering: a faint, fine grain over the glow breaks up any remaining
-   8-bit color bands so the eye can't pick out lines. Lives inside the
-   glow element, so it only appears where (and when) the glow does, and
-   ambient mode off leaves the plain page background grain-free.
-   Grayscale noise (feColorMatrix saturate 0), overlay-blended so it
-   nudges the glow's own colors lighter/darker rather than adding gray. */
-html.yt-split-active #cinematics::after,
-html.yt-split-active #cinematics-container::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
+/* position: fixed + z-index: -1 inside #columns' own stacking context
+   (isolation above): covers the whole window, above YouTube's page
+   background, below the video and panes (the translucent panes let it
+   show through). #columns' overflow: hidden doesn't clip it, since
+   #columns isn't its containing block. */
+#yt-split-ambient {
+  position: fixed;
+  inset: calc(-1 * var(--split-ambient-overscan));
+  z-index: -1;
   pointer-events: none;
-  opacity: 0.28;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+  filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
+    brightness(var(--split-ambient-brightness));
+}
+
+#yt-split-ambient canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+html.yt-split-ambient-on #yt-split-ambient {
+  opacity: var(--split-ambient-opacity);
+}
+
+/* Anti-banding grain: a SEPARATE layer above the glow, never inside the
+   blurred element. (An earlier version put the grain inside the blurred
+   glow, where the blur smeared it into a flat gray haze that dithered
+   nothing, and was still showing, as a whitish film, with ambient mode
+   off.) Overlay-blended so it nudges the glow's own colors lighter or
+   darker rather than adding gray, and only shown while the glow is on. */
+#yt-split-ambient-grain {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.5s ease;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 200px 200px;
+}
+
+html.yt-split-ambient-on #yt-split-ambient-grain {
+  opacity: var(--split-ambient-grain);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #yt-split-ambient,
+  #yt-split-ambient-grain {
+    transition: none;
+  }
 }
 
 /* Let the glow reach the top of the window too: the masthead's own
