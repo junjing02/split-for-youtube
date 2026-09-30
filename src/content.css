@@ -44,6 +44,8 @@ html.yt-split-active {
   --split-ambient-saturate: 1.7;
   /* Extra blur for the stretched glow; higher = smoother, softer. */
   --split-ambient-blur: 96px;
+  /* How fast the glow fades to the video's newest frame; lower = snappier. */
+  --split-ambient-fade: 0.4s;
 }
 
 html.yt-split-active:not([dark]) {
@@ -173,6 +175,16 @@ html.yt-split-active #cinematics-container {
   filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
     brightness(var(--split-ambient-brightness)) !important;
   transform: scale(1.25) !important;
+}
+
+/* Responsiveness: YouTube samples the video every so often and slowly
+   cross-fades its glow canvases from the old frame to the new one (an
+   inline CSS transition), so the glow trailed noticeably behind scene
+   changes. A short fade follows the video much more closely; !important
+   beats the inline style. Tune via --split-ambient-fade. */
+html.yt-split-active #cinematics *,
+html.yt-split-active #cinematics-container * {
+  transition-duration: var(--split-ambient-fade) !important;
 }
 
 /* Dithering: a faint, fine grain over the glow breaks up any remaining
