@@ -38,6 +38,10 @@ html.yt-split-active {
   /* The single spacing value used for every edge and gap in the layout —
      see #columns' padding below. */
   --split-gap: clamp(4px, 0.5vw, 6px);
+  /* Ambient-mode glow strength (see the #cinematics rule below). 1 = as
+     YouTube draws it; raise either to make the glow more obvious. */
+  --split-ambient-brightness: 1.5;
+  --split-ambient-saturate: 1.6;
 }
 
 html.yt-split-active:not([dark]) {
@@ -155,6 +159,11 @@ html.yt-split-active #cinematics-container {
   margin: 0 !important;
   z-index: -1 !important;
   pointer-events: none !important;
+  /* Stronger glow, by request (tune via the --split-ambient-* tokens at
+     the top). A filter, not opacity: YouTube animates this element's own
+     opacity to fade the glow out when ambient mode is turned off, so
+     forcing opacity could leave a stale frame showing. */
+  filter: brightness(var(--split-ambient-brightness)) saturate(var(--split-ambient-saturate)) !important;
 }
 
 /* Let the glow reach the top of the window too: the masthead's own
