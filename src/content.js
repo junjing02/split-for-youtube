@@ -837,29 +837,76 @@
 
   let ambient = null;
 
-  // Whether YouTube's own Ambient mode is on. Primary signal: the player
-  // settings menu's "Ambient mode" item (aria-checked), found by its icon
-  // or English label. Fallback, if the menu isn't built yet: whether
-  // YouTube has set up its own glow canvas. Dark theme only, like YouTube.
-  function isYouTubeAmbientModeOn() {
-    if (!document.documentElement.hasAttribute("dark")) return false;
-    for (const item of document.querySelectorAll(".ytp-settings-menu .ytp-menuitem")) {
-      const path = item.querySelector("path");
-      const d = path ? path.getAttribute("d") || "" : "";
-      const label = item.querySelector(".ytp-menuitem-label");
-      if (d.startsWith(AMBIENT_MENU_ICON) || (label && /ambient/i.test(label.textContent))) {
-        return item.getAttribute("aria-checked") === "true";
-      }
+  // Last Ambient mode state read from YouTube's own settings menu,
+  // remembered (in memory and localStorage, which this content script
+  // shares with youtube.com) because the menu item isn't always in the
+  // DOM: YouTube can tear the settings menu down once it's closed. An
+  // earlier version only read the live menu and otherwise guessed from
+  // YouTube's own glow canvas, which stays in the DOM with ambient mode
+  // off, so the glow kept running after the user turned ambient mode off.
+  const AMBIENT_SAVED_KEY = "ytSplitAmbientMode";
+
+  function loadAmbientPref() {
+    try {
+      const v = localStorage.getItem(AMBIENT_SAVED_KEY);
+      return v === "on" ? true : v === "off" ? false : null;
+    } catch (e) {
+      return null;
     }
-    const cinematics = document.querySelector("#cinematics, #cinematics-container");
-    return !!(cinematics && cinematics.querySelector("canvas"));
   }
 
-  function setAmbientOn(on) {
+  function saveAmbientPref(on) {
+    try {
+      localStorage.setItem(AMBIENT_SAVED_KEY, on ? "on" : "off");
+    } catch (e) {
+      // storage unavailable; the in-memory state still works this session
+    }
+  }
+
+  // The "Ambient mode" item in the player's settings menu, matched by its
+  // icon or by "ambient" in its text, among any menu checkbox on the page.
+  function findAmbientMenuItem() {
+    for (const item of document.querySelectorAll('.ytp-menuitem, [role="menuitemcheckbox"]')) {
+      const path = item.querySelector("path");
+      const d = path ? path.getAttribute("d") || "" : "";
+      if (d.startsWith(AMBIENT_MENU_ICON) || /ambient/i.test(item.textContent)) return item;
+    }
+    return null;
+  }
+
+  // Checked state from the item itself or whichever child carries
+  // aria-checked; null if it can't be read.
+  function readMenuChecked(item) {
+    const el = item.hasAttribute("aria-checked") ? item : item.querySelector("[aria-checked]");
+    return el ? el.getAttribute("aria-checked") === "true" : null;
+  }
+
+  // Whether YouTube's own Ambient mode is on, and which signal said so.
+  // Order: the live settings-menu item (saved for later), then the last
+  // saved state, then (only if the state has never been read) whether
+  // YouTube set up its own glow canvas. Dark theme only, like YouTube.
+  function readYouTubeAmbientMode() {
+    if (!document.documentElement.hasAttribute("dark")) return { on: false, source: "light theme" };
+    const item = findAmbientMenuItem();
+    const checked = item ? readMenuChecked(item) : null;
+    if (checked !== null) {
+      saveAmbientPref(checked);
+      return { on: checked, source: "settings menu" };
+    }
+    const saved = loadAmbientPref();
+    if (saved !== null) return { on: saved, source: "remembered setting" };
+    const cinematics = document.querySelector("#cinematics, #cinematics-container");
+    return { on: !!(cinematics && cinematics.querySelector("canvas")), source: "YouTube glow (guess)" };
+  }
+
+  function setAmbientOn(on, source) {
     if (!ambient || ambient.on === on) return;
     ambient.on = on;
     ambient.fresh = true;
     document.documentElement.classList.toggle(AMBIENT_ON_CLASS, on);
+    // Only on an actual change (rare), so a wrong on/off state can be
+    // diagnosed from the console instead of guessed at.
+    console.info(`[Split for YouTube] ambient light ${on ? "on" : "off"} (from ${source})`);
   }
 
   function ensureAmbient(columns) {
@@ -918,7 +965,8 @@
 
     if (now - ambient.lastCheck >= AMBIENT_CHECK_MS) {
       ambient.lastCheck = now;
-      setAmbientOn(isYouTubeAmbientModeOn());
+      const mode = readYouTubeAmbientMode();
+      setAmbientOn(mode.on, mode.source);
     }
     if (!ambient.on || now - ambient.lastDraw < AMBIENT_FRAME_MS - 2) return;
 
@@ -982,16 +1030,22 @@
     a.fresh = false;
   }
 
-  // Toggling "Ambient mode" in the player's settings menu: re-check on the
-  // next frame instead of waiting out AMBIENT_CHECK_MS. The short delay
-  // lets YouTube update the item's aria-checked first.
+  // Toggling "Ambient mode" in the player's settings menu: re-check right
+  // away instead of waiting out AMBIENT_CHECK_MS, twice, since YouTube may
+  // update the item's aria-checked a moment after the click. The check
+  // itself also saves the new state (see readYouTubeAmbientMode).
   document.addEventListener(
     "click",
     (e) => {
-      if (!ambient || !e.target.closest || !e.target.closest(".ytp-menuitem")) return;
-      setTimeout(() => {
-        if (ambient) ambient.lastCheck = 0;
-      }, 60);
+      if (!ambient || !e.target.closest) return;
+      if (!e.target.closest('.ytp-menuitem, [role="menuitemcheckbox"]')) return;
+      for (const delay of [60, 300]) {
+        setTimeout(() => {
+          if (!ambient) return;
+          const mode = readYouTubeAmbientMode();
+          setAmbientOn(mode.on, mode.source);
+        }, delay);
+      }
     },
     true
   );
