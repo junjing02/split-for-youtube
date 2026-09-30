@@ -538,9 +538,28 @@ html.yt-split-active #below ytd-watch-info-text #info-container {
   max-height: none !important;
 }
 
+/* pre-wrap, not normal: the row separates "639 views" / "3 hours ago" with
+   space-only elements, which `normal` collapsed to nothing, rendering
+   "639views3hours ago". pre-wrap keeps those spaces and still wraps. */
 html.yt-split-active #below ytd-watch-info-text #info-container * {
-  white-space: normal !important;
+  white-space: pre-wrap !important;
   overflow-wrap: anywhere !important;
+}
+
+/* Video title: YouTube caps it at 2 lines (line clamp + fixed max-height),
+   but here the extra lines still painted, spilling out of the 2-line box
+   over the channel avatar/name row below it (reported with a long title
+   wrapping to 4 lines in the narrow side pane). Show the whole title
+   instead and let the box grow to fit, pushing the channel row down.
+   Only clamp/height/overflow are touched, not display (see the Subscribe
+   note below). */
+html.yt-split-active #below #above-the-fold #title,
+html.yt-split-active #below #above-the-fold #title * {
+  -webkit-line-clamp: unset !important;
+  line-clamp: unset !important;
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
 }
 
 /* A fix forcing #below #subscribe-button into a single flex row (to
