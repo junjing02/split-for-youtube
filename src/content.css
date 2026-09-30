@@ -40,10 +40,10 @@ html.yt-split-active {
   --split-gap: clamp(4px, 0.5vw, 6px);
   /* Ambient-mode glow strength (see the #cinematics rule below). 1 = as
      YouTube draws it; raise either to make the glow more obvious. */
-  --split-ambient-brightness: 1.5;
-  --split-ambient-saturate: 1.6;
+  --split-ambient-brightness: 1.9;
+  --split-ambient-saturate: 1.7;
   /* Extra blur for the stretched glow; higher = smoother, softer. */
-  --split-ambient-blur: 48px;
+  --split-ambient-blur: 96px;
 }
 
 html.yt-split-active:not([dark]) {
@@ -172,7 +172,7 @@ html.yt-split-active #cinematics-container {
      scale pushes the blur's darker, faded edges off-screen. */
   filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
     brightness(var(--split-ambient-brightness)) !important;
-  transform: scale(1.15) !important;
+  transform: scale(1.25) !important;
 }
 
 /* Dithering: a faint, fine grain over the glow breaks up any remaining
@@ -188,7 +188,7 @@ html.yt-split-active #cinematics-container::after {
   inset: 0;
   z-index: 1;
   pointer-events: none;
-  opacity: 0.18;
+  opacity: 0.28;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 200px 200px;
