@@ -17,7 +17,9 @@
   --accent-soft: rgba(79, 70, 229, 0.08);
   --line-strong: rgba(0, 0, 0, 0.26);
   --mock-bg: #ffffff;
-  --mock-pane: #f4f4f6;
+  /* Translucent, like the extension's panes, so the mock ambient glow
+     shows through them after the split. */
+  --mock-pane: rgba(244, 244, 246, 0.72);
   --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.18);
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -38,7 +40,7 @@
     --accent-soft: rgba(129, 140, 248, 0.12);
     --line-strong: rgba(255, 255, 255, 0.3);
     --mock-bg: #0f0f0f;
-    --mock-pane: #1b1b1d;
+    --mock-pane: rgba(27, 27, 29, 0.6);
     --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.7);
   }
 }
@@ -362,7 +364,9 @@ img {
 }
 
 /* YouTube's masthead: stays fixed and opaque on top, so in the "scrolled"
-   state the video slides up underneath it, as on the real page. */
+   state the video slides up underneath it, as on the real page. After the
+   split it turns transparent, as the extension makes it, so the ambient
+   glow reaches the top. */
 .mock-masthead {
   position: absolute;
   z-index: 3;
@@ -375,7 +379,45 @@ img {
   align-items: center;
   justify-content: space-between;
   gap: 4%;
-  background: var(--mock-bg);
+  background-color: var(--mock-bg);
+  transition: background-color 0.6s ease;
+}
+
+.morph-demo.is-after .mock-masthead {
+  background-color: transparent;
+}
+
+/* Ambient light: a soft glow in the mock video's own colors behind the
+   whole window, fading in once the layout splits (the extension's glow
+   follows YouTube's Ambient mode; this just shows the look). Same
+   gradient colors and sceneDrift animation (same duration, started
+   together) as .mock-scene, so the glow drifts in step with the video.
+   First child of .morph-body with z-index auto, so it paints under the
+   video and panes by tree order; inset -12% keeps the blurred edges
+   outside the window. */
+.mock-ambient {
+  position: absolute;
+  inset: -12%;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  background: radial-gradient(ellipse 42% 52% at 30% 45%, rgba(129, 140, 248, 0.9), transparent 70%),
+    radial-gradient(ellipse 38% 48% at 50% 70%, rgba(236, 72, 153, 0.75), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 80% 40%, rgba(99, 102, 241, 0.4), transparent 70%);
+  background-size: 140% 140%;
+  filter: blur(40px);
+  animation: sceneDrift 14s ease-in-out infinite alternate;
+}
+
+.morph-demo.is-after .mock-ambient {
+  opacity: 0.55;
+  transition-delay: 0.3s;
+}
+
+@media (prefers-color-scheme: light) {
+  .morph-demo.is-after .mock-ambient {
+    opacity: 0.3;
+  }
 }
 
 .mh-left,
@@ -1037,12 +1079,15 @@ img {
   .desc-full,
   .desc-header,
   .caret,
-  .rec-header > * {
+  .rec-header > *,
+  .mock-masthead,
+  .mock-ambient {
     transition: none !important;
   }
 
   .mock-scene,
-  .mock-progress span {
+  .mock-progress span,
+  .mock-ambient {
     animation: none;
   }
 
