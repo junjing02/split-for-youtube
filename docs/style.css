@@ -601,6 +601,32 @@ img {
   background-color: transparent;
 }
 
+/* Before-state geometry (desktop): YouTube's own layout — title/channel
+   and comments stacked under the video (3%-61% column), the recommended
+   sidebar beside it (64%-97%), all starting at the video's top (9.5%,
+   just under the masthead). Video bottom is ~64.9-66.6% (see geometry
+   note above), so the title block starts at 68%. */
+.morph-desc {
+  left: 3%;
+  top: 68%;
+  width: 58%;
+  height: 11%;
+}
+
+.morph-comments {
+  left: 3%;
+  top: 81%;
+  width: 58%;
+  height: 16%;
+}
+
+.morph-rec {
+  left: 64%;
+  top: 9.5%;
+  width: 33%;
+  height: 87.5%;
+}
+
 .morph-demo.is-after .morph-desc,
 .morph-demo.is-after .morph-rec,
 .morph-demo.is-after .morph-comments {
