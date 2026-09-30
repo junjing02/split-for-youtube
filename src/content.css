@@ -42,6 +42,8 @@ html.yt-split-active {
      YouTube draws it; raise either to make the glow more obvious. */
   --split-ambient-brightness: 1.5;
   --split-ambient-saturate: 1.6;
+  /* Extra blur for the stretched glow; higher = smoother, softer. */
+  --split-ambient-blur: 48px;
 }
 
 html.yt-split-active:not([dark]) {
@@ -162,8 +164,34 @@ html.yt-split-active #cinematics-container {
   /* Stronger glow, by request (tune via the --split-ambient-* tokens at
      the top). A filter, not opacity: YouTube animates this element's own
      opacity to fade the glow out when ambient mode is turned off, so
-     forcing opacity could leave a stale frame showing. */
-  filter: brightness(var(--split-ambient-brightness)) saturate(var(--split-ambient-saturate)) !important;
+     forcing opacity could leave a stale frame showing.
+     Blur comes FIRST: YouTube's own blur is sized for a glow around the
+     video, and stretched across the whole window it left visible bands
+     ("lines flowing through"), which the brightness/saturation boost made
+     worse. Blurring before boosting smooths the gradient out; the slight
+     scale pushes the blur's darker, faded edges off-screen. */
+  filter: blur(var(--split-ambient-blur)) saturate(var(--split-ambient-saturate))
+    brightness(var(--split-ambient-brightness)) !important;
+  transform: scale(1.15) !important;
+}
+
+/* Dithering: a faint, fine grain over the glow breaks up any remaining
+   8-bit color bands so the eye can't pick out lines. Lives inside the
+   glow element, so it only appears where (and when) the glow does, and
+   ambient mode off leaves the plain page background grain-free.
+   Grayscale noise (feColorMatrix saturate 0), overlay-blended so it
+   nudges the glow's own colors lighter/darker rather than adding gray. */
+html.yt-split-active #cinematics::after,
+html.yt-split-active #cinematics-container::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0.18;
+  mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  background-size: 200px 200px;
 }
 
 /* Let the glow reach the top of the window too: the masthead's own
