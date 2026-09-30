@@ -127,6 +127,45 @@ html.yt-split-active #columns {
      markup) and needs its own diagnosis, not a background change here. */
   background: transparent !important;
   align-items: stretch !important;
+  /* Own stacking context, so the ambient-mode glow below (z-index: -1)
+     paints just above the page background but under the video and panes,
+     instead of dropping behind YouTube's opaque page background. */
+  isolation: isolate;
+}
+
+/* Ambient mode ("cinematics": YouTube's blurred, enlarged copy of the
+   video drawn behind the player) glows across the WHOLE window, by
+   request, not just around the video. Natively it sits inside the video
+   column, whose overflow: hidden (and the player box's) clipped it to the
+   video's area. position: fixed escapes those clips (they're not its
+   containing block), inset: 0 stretches it over the viewport (the blur
+   hides the stretch), and z-index: -1 inside #columns' stacking context
+   (above) keeps it behind all real content; the translucent panes let it
+   show through. Only the outer element is repositioned; YouTube's own
+   scale/blur on its inner canvas are left alone. Two ids because YouTube
+   has used both names for this element. */
+html.yt-split-active #cinematics,
+html.yt-split-active #cinematics-container {
+  position: fixed !important;
+  inset: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  margin: 0 !important;
+  z-index: -1 !important;
+  pointer-events: none !important;
+}
+
+/* Let the glow reach the top of the window too: the masthead's own
+   background is transparent while the split is active. The page can't
+   scroll in the split layout (body overflow: hidden), so nothing but the
+   glow (or, with ambient mode off, the same plain page color) ever sits
+   behind it. */
+html.yt-split-active #masthead-container,
+html.yt-split-active ytd-masthead,
+html.yt-split-active ytd-masthead #background {
+  background: transparent !important;
 }
 
 /* Left column: just the video, letterboxed/centered to fill the column.
