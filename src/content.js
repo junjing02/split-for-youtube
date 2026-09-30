@@ -66,18 +66,18 @@
   // confirmed; revert this if it doesn't fix it.
   const MIN_SIDE_WIDTH = 400;
   const MIN_VIDEO_WIDTH = 480;
-  // The visible highlight is thin (see content.css), but the actual
-  // draggable hit-box is wider — a ~3px target that's invisible until
-  // hover proved too hard to land a mouse on precisely, which was why
-  // dragging seemed to just not work.
-  const DIVIDER_WIDTH = 10;
-  const RESERVED_EXTRA = 24; // padding/gap allowance for drag math (2 gaps + 2 paddings, max 6px each)
+  // Horizontal space inside #columns that's neither video nor side pane:
+  // #columns' own left + right padding and the divider column between
+  // them, each --split-gap (content.css, max 6px). An upper bound, used to
+  // reserve room for the video in the drag math; applySideWidth() measures
+  // the real value instead.
+  const LAYOUT_OVERHEAD = 18;
 
   // Resizer between the recommendations/chat pane and the comments pane.
   // Not persisted — see start().
   const TOP_HEIGHT_VAR = "--yt-split-top-h";
   const MIN_PANE_HEIGHT = 160; // matches the CSS min-height on both panes
-  const VRESIZER_HEIGHT = 10; // same wide-hit-box, thin-visual reasoning as DIVIDER_WIDTH
+  const VRESIZER_HEIGHT = 10; // wide hit-box vs. thin visual line, see #yt-split-vresizer::before in content.css
   const V_RESERVED_EXTRA = 18; // gap allowance for drag math (3 gaps: desc↔rec, rec↔resizer, resizer↔comments, max 6px each)
 
   const VIDEO_MAX_WIDTH_VAR = "--yt-split-video-max-w";
@@ -211,7 +211,7 @@
 
   function clampSideWidth(px, columnsRect, ratio) {
     if (ratio == null) ratio = measureVideoAspectRatio();
-    const reserved = minVideoWidthFor(ratio) + DIVIDER_WIDTH + RESERVED_EXTRA;
+    const reserved = minVideoWidthFor(ratio) + LAYOUT_OVERHEAD;
     const maxSide = Math.max(MIN_SIDE_WIDTH, columnsRect.width - reserved);
     return Math.max(MIN_SIDE_WIDTH, Math.min(maxSide, px));
   }
@@ -329,7 +329,7 @@
     // DELTA from the mousedown point, not an absolute cursor position —
     // same fix, same reasoning as the vertical (recs/comments) resizer's
     // own onDocumentMouseMoveV below. This divider's clickable hit-box
-    // (DIVIDER_WIDTH, 10px) is wider than its ~3px visual line, so a click
+    // (its ::before, ~14px) is wider than its ~3px visual line, so a click
     // essentially never lands exactly on that line. The old absolute
     // formula (`rect.right - e.clientX`) computed a brand new width from
     // the raw cursor position the INSTANT the drag started — any click
@@ -1021,7 +1021,18 @@
 
     const ratio = measureVideoAspectRatio();
     const idealVideoWidth = availableHeight * ratio;
-    const overhead = DIVIDER_WIDTH + RESERVED_EXTRA;
+    // Measured, not assumed: whatever part of #columns' width isn't the
+    // video column's content box or the side pane (padding + divider).
+    // A fixed guess that didn't match the real CSS left the video a few px
+    // narrower than its column — uneven extra space beside it. Falls back
+    // to the upper bound if the layout isn't measurable yet.
+    const sidePane = document.querySelector("#yt-split-side-pane");
+    let overhead = LAYOUT_OVERHEAD;
+    if (sidePane) {
+      const measured =
+        columnsRect.width - primaryInner.getBoundingClientRect().width - sidePane.getBoundingClientRect().width;
+      if (measured >= 0 && measured <= LAYOUT_OVERHEAD * 2) overhead = measured;
+    }
     // Deliberately NOT routed through clampSideWidth() here. That
     // function's ceiling reserves minVideoWidthFor(ratio) for the video —
     // a fixed SAFETY FLOOR meant to stop a DRAG from squeezing the video
