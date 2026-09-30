@@ -5,38 +5,45 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Split for YouTube</title>
   <meta name="description" content="A Chrome extension that splits the YouTube watch page into a resizable two-column layout — video on the left, description, recommendations, and comments on the right." />
+  <meta name="color-scheme" content="light dark" />
+  <meta property="og:title" content="Split for YouTube" />
+  <meta property="og:description" content="Watch and read at the same time. A two-column layout for the YouTube watch page." />
+  <meta property="og:type" content="website" />
   <link rel="icon" href="icon.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&display=swap" />
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header class="nav">
-    <div class="nav-inner">
+    <div class="container nav-inner">
       <a class="brand" href="#top">
-        <img src="icon.png" alt="" width="28" height="28" />
+        <img src="icon.png" alt="" width="26" height="26" />
         <span>Split for YouTube</span>
       </a>
-      <nav>
-        <a href="#features">Features</a>
+      <nav aria-label="Primary">
+        <a href="#features" class="nav-link-optional">Features</a>
         <a href="#install">Install</a>
-        <a href="https://github.com/junjing02/split-for-youtube" class="nav-github">GitHub</a>
+        <a href="https://github.com/junjing02/split-for-youtube" class="nav-github"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg><span>GitHub</span></a>
       </nav>
     </div>
   </header>
 
   <main>
-    <section id="top" class="hero">
+    <section id="top" class="container hero">
       <div class="hero-inner">
-        <h1>Watch <span class="grad-text">and read</span> at the same time.</h1>
+        <p class="eyebrow">Free Chrome extension</p>
+        <h1>Watch and read <span class="muted">at the same time.</span></h1>
         <p class="subtitle">
           Split for YouTube turns the watch page into a clean two-column layout —
           video on the left, description, recommendations, and comments on the right.
         </p>
         <div class="cta-row">
           <a href="#install" class="btn btn-primary">Get started</a>
-          <a href="https://github.com/junjing02/split-for-youtube" class="btn btn-secondary">View on GitHub</a>
+          <a href="https://github.com/junjing02/split-for-youtube" class="btn btn-secondary"><svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>View on GitHub</a>
         </div>
+        <p class="hero-meta">Works in Chrome, Edge, Brave, and other Chromium browsers.</p>
       </div>
 
       <div class="morph-demo" id="morphDemo">
@@ -172,44 +179,59 @@
       </div>
     </section>
 
-    <section id="features" class="features">
-      <h2>Why use it</h2>
-      <p class="section-hook">Scroll through recommendations or comments — the video never scrolls away.</p>
+    <section id="features" class="container section">
+      <div class="section-head">
+        <p class="section-label">Why use it</p>
+        <h2>The video never scrolls away.</h2>
+        <p class="section-lead">Browse recommendations or read comments while the video keeps playing in full view.</p>
+      </div>
 
       <div class="feature-grid">
-        <div class="feature-card">
+        <div class="feature">
           <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/></svg>
           </div>
-          <h3>Video never scrolls away</h3>
-          <p>Unlike YouTube, scrolling comments or recommendations never carries the video off-screen.</p>
+          <h3>Always in view</h3>
+          <p>The video gets its own column. Scrolling comments or recommendations never carries it off-screen.</p>
         </div>
-        <div class="feature-card">
+        <div class="feature">
           <div class="feature-icon">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v18M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18M8 8l-4 4 4 4M16 8l4 4-4 4"/></svg>
           </div>
           <h3>Drag to resize</h3>
-          <p>Any divider, any split — your call.</p>
+          <p>Move either divider to split the space however you like — between video and side pane, or recommendations and comments.</p>
         </div>
       </div>
     </section>
 
-    <section id="install" class="install">
-      <h2>Install</h2>
-      <p class="section-lead">Not on the Chrome Web Store yet — load it as an unpacked extension:</p>
-      <ol class="steps">
-        <li>Download or clone the repository.</li>
-        <li>Open <code>chrome://extensions</code> in Chrome (or any Chromium-based browser).</li>
-        <li>Turn on <strong>Developer mode</strong> (top right).</li>
-        <li>Click <strong>Load unpacked</strong> and select the project folder.</li>
-        <li>Open any YouTube video.</li>
-      </ol>
-      <p class="note">Works best on a spacious, landscape-oriented window — full screen or close to it.</p>
+    <section id="install" class="container section">
+      <div class="section-head">
+        <p class="section-label">Install</p>
+        <h2>Up and running in a minute.</h2>
+        <p class="section-lead">Not on the Chrome Web Store yet — load it as an unpacked extension.</p>
+      </div>
+
+      <div class="install-body">
+        <ol class="steps">
+          <li><a href="https://github.com/junjing02/split-for-youtube/archive/refs/heads/main.zip">Download the ZIP</a> and unzip it, or clone the repository.</li>
+          <li>Open <code>chrome://extensions</code> in Chrome or any Chromium-based browser.</li>
+          <li>Turn on <strong>Developer mode</strong> in the top right.</li>
+          <li>Click <strong>Load unpacked</strong> and select the unzipped folder.</li>
+          <li>Open any YouTube video.</li>
+        </ol>
+        <p class="note">Works best in a large, landscape window. In smaller windows, YouTube keeps its normal layout.</p>
+        <div class="cta-row install-cta">
+          <a href="https://github.com/junjing02/split-for-youtube/archive/refs/heads/main.zip" class="btn btn-primary"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v12M7 10l5 5 5-5M5 21h14"/></svg>Download ZIP</a>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer class="footer">
-    <p>Split for YouTube — <span id="year"></span></p>
+    <div class="container footer-inner">
+      <p>© <span id="year"></span> Split for YouTube</p>
+      <a href="https://github.com/junjing02/split-for-youtube">Source on GitHub</a>
+    </div>
   </footer>
 
   <script src="script.js"></script>
