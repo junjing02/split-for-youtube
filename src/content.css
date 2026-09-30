@@ -40,8 +40,8 @@ html.yt-split-active {
   --split-gap: clamp(4px, 0.5vw, 6px);
   /* Ambient-mode glow strength (see the #cinematics rule below). 1 = as
      YouTube draws it; raise either to make the glow more obvious. */
-  --split-ambient-brightness: 1.9;
-  --split-ambient-saturate: 1.7;
+  --split-ambient-brightness: 1.45;
+  --split-ambient-saturate: 1.6;
   /* Extra blur for the stretched glow; higher = smoother, softer. */
   --split-ambient-blur: 96px;
   /* How fast the glow fades to the video's newest frame; lower = snappier. */
