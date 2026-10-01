@@ -1,7 +1,7 @@
 /* Design direction: a quiet, monochrome page (graphite ink on near-white,
    or the inverse in dark mode) where the ONLY color is the live demo: a
-   cinematic teal-and-orange video, its ambient glow, and the light it
-   spills onto the page. One bold element, everything else disciplined.
+   cinematic teal-and-orange video, plus (dark mode only, like the
+   extension's ambient light) its glow and the light it spills onto the page. One bold element, everything else disciplined.
    Light by default; dark follows prefers-color-scheme (no toggle).
 
    Palette: paper #FAFAFA, ink #111316, slate #5D636D, line (ink at low
@@ -25,7 +25,11 @@
   /* Translucent, like the extension's panes, so the mock ambient glow
      shows through them after the split. */
   --mock-pane: rgba(244, 244, 246, 0.72);
-  --spill: 0.28; /* demo glow spilling onto the page, after the split */
+  /* Demo ambient glow: none at all in light mode (the extension's ambient
+     light is dark-theme only, like YouTube's); dark mode sets these. */
+  --mock-glow: 0; /* glow inside the mock window, after the split */
+  --spill: 0; /* glow spilling onto the page, after the split */
+  --spill-hint: 0; /* faint spill before the split */
   --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --shadow-window: 0 0 0 1px rgba(17, 19, 22, 0.05), 0 2px 4px rgba(17, 19, 22, 0.04),
     0 16px 32px -12px rgba(17, 19, 22, 0.12), 0 56px 112px -40px rgba(17, 19, 22, 0.28);
@@ -48,7 +52,9 @@
     --on-accent: #0a0a0b;
     --mock-bg: #0f0f0f;
     --mock-pane: rgba(27, 27, 29, 0.6);
-    --spill: 0.45;
+    --mock-glow: 0.85;
+    --spill: 0.7;
+    --spill-hint: 0.12;
     --shadow-window: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 2px 4px rgba(0, 0, 0, 0.4),
       0 16px 32px -12px rgba(0, 0, 0, 0.5), 0 56px 112px -40px rgba(0, 0, 0, 0.9);
   }
@@ -293,8 +299,8 @@ img {
   background: radial-gradient(50% 60% at 30% 45%, rgba(251, 146, 60, 0.85), transparent 70%),
     radial-gradient(45% 55% at 56% 75%, rgba(20, 184, 166, 0.7), transparent 70%),
     radial-gradient(50% 60% at 82% 40%, rgba(14, 116, 144, 0.55), transparent 70%);
-  filter: blur(60px);
-  opacity: 0.08;
+  filter: blur(72px);
+  opacity: var(--spill-hint);
   transition: opacity 1s ease;
 }
 
@@ -436,19 +442,13 @@ img {
     radial-gradient(ellipse 38% 48% at 50% 70%, rgba(20, 184, 166, 0.7), transparent 70%),
     radial-gradient(ellipse 55% 60% at 80% 40%, rgba(14, 116, 144, 0.45), transparent 70%);
   background-size: 140% 140%;
-  filter: blur(40px);
+  filter: blur(48px);
   animation: sceneDrift 14s ease-in-out infinite alternate;
 }
 
 .morph-demo.is-after .mock-ambient {
-  opacity: 0.55;
+  opacity: var(--mock-glow);
   transition-delay: 0.3s;
-}
-
-@media (prefers-color-scheme: light) {
-  .morph-demo.is-after .mock-ambient {
-    opacity: 0.3;
-  }
 }
 
 .mh-left,
