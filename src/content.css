@@ -719,6 +719,50 @@ html.yt-split-active #below #above-the-fold #title * {
   overflow: visible !important;
 }
 
+/* Channel row + action buttons (like/dislike, Share, Save, ...): reported
+   misaligned (the actions sat lower than the channel/bell) and clipped at
+   the bottom. The actions container kept a top offset and a fixed height
+   from one of YouTube's own layouts, so the offset pushed the buttons
+   down inside a box too short to hold them. Lay the row out explicitly:
+   channel and actions vertically centered on one line, the actions
+   wrapping onto their own line (right-aligned) when there isn't room, and
+   no fixed heights or clipping. Spacing/wrapping/sizing only; display is
+   left alone (see the Subscribe note below). */
+html.yt-split-active #below #top-row {
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+  gap: 12px 16px !important;
+  margin: 0 !important;
+  height: auto !important;
+}
+
+html.yt-split-active #below #owner {
+  flex: 0 1 auto !important;
+  margin: 0 !important;
+}
+
+html.yt-split-active #below #actions,
+html.yt-split-active #below #actions-inner,
+html.yt-split-active #below #actions #menu,
+html.yt-split-active #below #actions ytd-menu-renderer {
+  margin-top: 0 !important;
+  height: auto !important;
+  min-height: 0 !important;
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+html.yt-split-active #below #actions {
+  flex: 1 1 auto !important;
+  margin-left: auto !important;
+}
+
+html.yt-split-active #below #actions-inner,
+html.yt-split-active #below #actions #menu {
+  justify-content: flex-end !important;
+}
+
 /* Subscribe button (+ notification bell): visible again, by request. It
    was hidden with display: none after showing up as two separate stacked
    pills (Subscribe, bell) instead of YouTube's single merged pill. Likely
