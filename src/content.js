@@ -1576,6 +1576,11 @@
   }
 
   function exitRecsFocusMode() {
+    // Bound to every "play" event, but only the video-ended widened state
+    // needs undoing. Without this guard, simply pausing and resuming (e.g.
+    // clicking the video) recomputed the default width and threw away a
+    // manually dragged divider (reported).
+    if (!inRecsFocusMode) return;
     inRecsFocusMode = false;
     // Just let the normal ideal-video-size default recomputation take
     // back over — no need to duplicate that logic here.
