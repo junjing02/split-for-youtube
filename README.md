@@ -7,8 +7,9 @@
 <p align="center"><strong>Read the comments without losing the video.</strong></p>
 
 <p align="center">
-  <a href="https://junjing02.github.io/split-for-youtube/"><img src="https://img.shields.io/badge/site-live%20demo-4f46e5" alt="Live demo" /></a>
-  <img src="https://img.shields.io/badge/manifest-v3-4f46e5" alt="Manifest V3" />
+  <a href="https://github.com/junjing02/split-for-youtube/releases/latest"><img src="https://img.shields.io/github/v/release/junjing02/split-for-youtube?label=version&color=111316" alt="Latest version" /></a>
+  <a href="https://junjing02.github.io/split-for-youtube/"><img src="https://img.shields.io/badge/site-live%20demo-111316" alt="Live demo" /></a>
+  <img src="https://img.shields.io/badge/manifest-v3-111316" alt="Manifest V3" />
   <img src="https://img.shields.io/badge/chrome%20web%20store-not%20yet-lightgrey" alt="Not on the Chrome Web Store yet" />
 </p>
 
@@ -33,9 +34,12 @@ Split for YouTube fixes that. The video gets its own column, and the description
 - **Video-first by default** — every video loads with the player at its largest possible size; the side pane takes whatever's left.
 - **Collapsible sections** — description, recommendations, and comments each collapse to a single header with one click.
 - **Live streams supported** — recommendations automatically become live chat while a stream is live.
+- **Ready for what's next** — when a video ends, the side pane widens and recommendations take the room comments were using, so it's easy to pick the next one. Press play again and the side pane returns to its usual width.
+- **Matches YouTube's theme** — light or dark, with see-through panes that sit softly over the page.
 - **Ambient light** — with YouTube's Ambient mode on (dark theme), the video's colors glow softly across the whole background, spreading out from each edge of the video and following it frame by frame. Turn Ambient mode off in the player settings and the background goes back to normal.
 - **Two windows** — keep the video in your window and move the description, recommendations and comments to a second window that stays in sync. See [Two windows](#two-windows) below.
-- **Stays out of the way** — theater mode, Shorts, and smaller windows all fall back to YouTube's normal layout, untouched.
+- **Stays out of the way** — in theater mode or a small window (narrower than 900px, or not landscape), YouTube's normal layout comes back, untouched.
+- **Shorts (experimental)** — on Shorts, the comments panel docks beside the video instead of covering it.
 
 ## Two windows
 
@@ -79,6 +83,18 @@ Not on the Chrome Web Store yet — load it as an unpacked extension:
 4. Click **Load unpacked** and select the `split-for-youtube` folder. (Cloning this repository and selecting its root folder works too.)
 5. Open any YouTube video.
 
+## Updating
+
+Download the latest [`split-for-youtube.zip`](https://github.com/junjing02/split-for-youtube/releases/latest/download/split-for-youtube.zip), replace your old `split-for-youtube` folder with the new one, then click the reload icon on the extension's card in `chrome://extensions` and refresh any open YouTube tabs.
+
 ## Requirements
 
-Works on a spacious, landscape-oriented window — full screen or close to it. On a narrow or short window, YouTube's normal layout is left untouched.
+- Chrome, Edge, Brave or another Chromium-based browser.
+- The split layout needs a spacious, landscape-oriented window, full screen or close to it. In a narrow or short window, YouTube's normal layout is left untouched. Two windows works at any size.
+
+## Privacy
+
+Everything runs in your browser. The extension collects nothing and makes no network requests of its own. It asks for:
+
+- **Access to youtube.com** — to rearrange the watch page, and to notice when the video tab leaves a video (so the second window can close).
+- **Storage** — to remember whether Two windows is on and where you put the second window.
