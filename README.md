@@ -38,10 +38,10 @@ On regular YouTube, scrolling down to reach recommendations or comments scrolls 
 
 Not on the Chrome Web Store yet — load it as an unpacked extension:
 
-1. Download or clone this repository.
+1. [Download `split-for-youtube.zip`](https://github.com/junjing02/split-for-youtube/releases/latest/download/split-for-youtube.zip) and unzip it. It contains only the files the extension needs.
 2. Open `chrome://extensions` in Chrome (or any Chromium-based browser).
 3. Turn on **Developer mode** (top right).
-4. Click **Load unpacked** and select this folder.
+4. Click **Load unpacked** and select the `split-for-youtube` folder. (Cloning this repository and selecting its root folder works too.)
 5. Open any YouTube video.
 
 ## Requirements
