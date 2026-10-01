@@ -192,9 +192,9 @@ img {
 
 .hero h1 {
   margin: 0 0 28px;
-  max-width: 14ch;
+  max-width: 16ch;
   font-weight: 600;
-  font-size: clamp(46px, 7.6vw, 92px);
+  font-size: clamp(42px, 7vw, 86px);
   line-height: 0.98;
   letter-spacing: -0.048em;
 }
@@ -1136,7 +1136,7 @@ img {
 
 .section-title {
   margin: 0;
-  max-width: 18ch;
+  max-width: 20ch;
   font-weight: 600;
   font-size: clamp(32px, 4.6vw, 52px);
   line-height: 1.04;

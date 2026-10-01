@@ -4,7 +4,7 @@
 
 <h1 align="center">Split for YouTube</h1>
 
-<p align="center">Watch <strong>and</strong> read at the same time.</p>
+<p align="center"><strong>Read the comments without losing the video.</strong></p>
 
 <p align="center">
   <a href="https://junjing02.github.io/split-for-youtube/"><img src="https://img.shields.io/badge/site-live%20demo-4f46e5" alt="Live demo" /></a>
@@ -13,7 +13,7 @@
 </p>
 
 <p align="center">
-  A Chrome extension that turns the YouTube watch page into a clean two-column layout — video on the left, description, recommendations, and comments stacked and resizable on the right.
+  A free Chrome extension that puts the video on the left and everything else on the right. Scroll the comments, browse what's next, and the video never leaves the screen.
 </p>
 
 <p align="center"><a href="https://junjing02.github.io/split-for-youtube/">→ See it in action on the landing page</a></p>
@@ -22,7 +22,9 @@
 
 ## Why
 
-On regular YouTube, scrolling down to reach recommendations or comments scrolls the video itself off-screen. Split for YouTube fixes that: the video gets its own fixed column, and description, recommendations, and comments live in a resizable pane next to it — so you can browse without ever losing the video.
+On YouTube, the comments and recommendations live below the video. Scroll down to read them and the video slides off the screen.
+
+Split for YouTube fixes that. The video gets its own column, and the description, recommendations and comments sit beside it in panes you can resize and collapse. Read, browse and keep watching, all at once.
 
 ## Features
 
