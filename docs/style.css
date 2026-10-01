@@ -1213,16 +1213,16 @@ img {
   content: "";
   position: absolute;
   z-index: -1;
-  top: 18%;
-  left: 2%;
-  width: 66%;
-  bottom: 0;
+  top: 10%;
+  left: -2%;
+  width: 76%;
+  bottom: -4%;
   pointer-events: none;
   border-radius: 40px;
-  background: radial-gradient(50% 60% at 35% 50%, rgba(251, 146, 60, 0.8), transparent 70%),
-    radial-gradient(45% 55% at 65% 70%, rgba(20, 184, 166, 0.65), transparent 70%);
+  background: radial-gradient(50% 60% at 35% 50%, rgba(251, 146, 60, 0.9), transparent 70%),
+    radial-gradient(45% 55% at 65% 70%, rgba(20, 184, 166, 0.8), transparent 70%);
   filter: blur(72px);
-  opacity: calc(var(--spill) * 0.6);
+  opacity: calc(var(--spill) * 1.15);
 }
 
 .tw-stage {
@@ -1270,10 +1270,50 @@ img {
 /* Main window: video only, centered in the space below the top bar, like
    the real video-only window. */
 .tw-main-body {
+  position: relative;
+  isolation: isolate;
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
+}
+
+/* Ambient light inside the main window: the video's colors glowing behind
+   it, as the extension draws it. One layer per demo video, cross-faded
+   with the video on switch. Dark mode only (--mock-glow is 0 in light). */
+.tw-ambient {
+  position: absolute;
+  z-index: -1;
+  inset: -12%;
+  pointer-events: none;
+  filter: blur(48px);
+  transition: opacity 0.6s ease;
+  animation: sceneDrift 14s ease-in-out infinite alternate;
+}
+
+.tw-ambient-a {
+  background: radial-gradient(ellipse 42% 52% at 32% 50%, rgba(251, 146, 60, 0.85), transparent 70%),
+    radial-gradient(ellipse 38% 48% at 60% 70%, rgba(20, 184, 166, 0.7), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 80% 40%, rgba(14, 116, 144, 0.45), transparent 70%);
+  background-size: 140% 140%;
+  opacity: var(--mock-glow);
+}
+
+.tw-ambient-b {
+  background: radial-gradient(ellipse 45% 55% at 62% 45%, rgba(20, 184, 166, 0.85), transparent 70%),
+    radial-gradient(ellipse 40% 50% at 30% 70%, rgba(251, 146, 60, 0.55), transparent 70%),
+    radial-gradient(ellipse 55% 60% at 80% 30%, rgba(14, 116, 144, 0.5), transparent 70%);
+  background-size: 140% 140%;
+  opacity: 0;
+}
+
+.tw-demo.tw-switched .tw-ambient-a {
+  opacity: 0;
+}
+
+.tw-demo.tw-switched .tw-ambient-b {
+  opacity: var(--mock-glow);
 }
 
 .tw-video-area {
@@ -1485,6 +1525,7 @@ img {
 
 @media (prefers-reduced-motion: reduce) {
   .tw-scene,
+  .tw-ambient,
   .tw-cursor,
   .tw-cursor svg,
   .tw-pop-body,
