@@ -9,6 +9,10 @@
 //   - timestamp clicked in the companion               -> main video seeks
 //   - companion window closed                          -> mode turns off
 //   - main tab closed / mode turned off                -> companion closes
+//   - main tab leaves the video (home, channel, other  -> companion closes,
+//     site)                                               mode stays on, so
+//                                                         the next video
+//                                                         reopens it
 // The pairing lives in chrome.storage.session, since an MV3 service worker
 // can be stopped between events and lose its globals.
 
@@ -55,6 +59,18 @@ function companionUrl(url) {
   u.searchParams.set("ytsplit", "companion");
   u.searchParams.delete("t");
   return u.href;
+}
+
+// A YouTube video page. Reading another tab's URL needs host permission,
+// so for any site other than youtube.com tab.url is undefined, which also
+// (correctly) counts as "not a video".
+function isWatchUrl(url) {
+  try {
+    const u = new URL(url);
+    return /(^|\.)youtube\.com$/.test(u.hostname) && u.pathname === "/watch";
+  } catch (e) {
+    return false;
+  }
 }
 
 function notify(tabId, msg) {
@@ -168,6 +184,21 @@ chrome.tabs.onRemoved.addListener((tabId) =>
     chrome.windows.remove(pair.companionWindowId).catch(() => {});
   })
 );
+
+// Main tab left the video (YouTube's own in-page navigation counts too):
+// close the pop-up but keep the mode on; the next video page the user opens
+// claims the pairing again and a fresh pop-up opens. Pairing cleared first
+// so the window closing doesn't switch the mode off.
+chrome.tabs.onUpdated.addListener((tabId, changeInfo, tab) => {
+  if (!changeInfo.url && changeInfo.status !== "complete") return;
+  serialized(async () => {
+    const pair = await getPair();
+    if (!pair || tabId !== pair.mainTabId || isWatchUrl(tab.url || "")) return;
+    await setPair(null);
+    notify(tabId, { type: "role", role: "none" });
+    chrome.windows.remove(pair.companionWindowId).catch(() => {});
+  });
+});
 
 // Mode switched off from the toolbar: close the pop-up, restore the split.
 // (Switching it on needs no work here: the visible watch tab's content
