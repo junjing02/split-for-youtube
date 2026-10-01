@@ -34,8 +34,40 @@ Split for YouTube fixes that. The video gets its own column, and the description
 - **Collapsible sections** — description, recommendations, and comments each collapse to a single header with one click.
 - **Live streams supported** — recommendations automatically become live chat while a stream is live.
 - **Ambient light** — with YouTube's Ambient mode on (dark theme), the video's colors glow softly across the whole background, spreading out from each edge of the video and following it frame by frame. Turn Ambient mode off in the player settings and the background goes back to normal.
-- **Two windows** — flip the switch in the toolbar panel to keep the video in your window and open the description, recommendations and comments in a separate pop-up window. Click a video, channel or timestamp in the pop-up and the main window follows; change videos in the main window and the pop-up follows. The pop-up closes by itself when you leave the video and reopens on the next one; close it yourself to go back to one window.
+- **Two windows** — keep the video in your window and move the description, recommendations and comments to a second window that stays in sync. See [Two windows](#two-windows) below.
 - **Stays out of the way** — theater mode, Shorts, and smaller windows all fall back to YouTube's normal layout, untouched.
+
+## Two windows
+
+Want the video as big as possible? Move everything else to its own window.
+
+**Turn it on:** click the Split for YouTube icon in Chrome's toolbar (pin it from the puzzle-piece menu if you don't see it) and switch on **Two windows**. With a video open, a second window appears beside it.
+
+| Your window | The second window |
+|---|---|
+| Just the video, filling the window | The description, recommendations and comments, stacked and resizable |
+
+Both are real YouTube, so liking, replying, sorting comments and "Show more" all work as usual. The second window remembers where you put it and how big it is.
+
+**They stay in sync:**
+
+| You do this | What happens |
+|---|---|
+| Click a video in the second window | Your window plays it, and the second window switches to its comments |
+| Change videos in your window (autoplay, end screen, any link) | The second window switches to the new video |
+| Click a timestamp like `2:31` in a comment or the description | Your video jumps to that moment |
+| Click a channel, playlist or search link in the second window | It opens in your window |
+
+**Closing it:**
+
+| You do this | What happens |
+|---|---|
+| Close the second window | Two windows switches off, and your window goes back to the normal split with all the panes |
+| Leave the video (home page, a channel, another site) | The second window closes by itself; open another video and it comes back |
+| Switch Two windows off in the toolbar | The second window closes, and the normal split comes back |
+| Close the video's tab | The second window closes too |
+
+A like or a new comment shows up in the other window after it reloads; switching videos and timestamps sync instantly.
 
 ## Install
 

@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap" />
   <!-- ?v= busts GitHub Pages' 10-minute browser cache (max-age=600) so new HTML never
        loads with a stale stylesheet/script. Bump it whenever style.css or script.js changes. -->
-  <link rel="stylesheet" href="style.css?v=12" />
+  <link rel="stylesheet" href="style.css?v=13" />
 </head>
 <body>
   <header class="nav">
@@ -183,6 +183,77 @@
       </div>
     </section>
 
+    <section id="two-windows" class="container section">
+      <h2 class="section-title">Or give the comments a window of their own.</h2>
+      <p class="section-lead">Switch on Two windows from the toolbar. The video fills your window, everything else opens beside it, and the two stay in sync.</p>
+
+      <div class="tw-demo" id="twDemo">
+        <div class="morph-label" aria-live="polite"><span class="morph-caption tw-caption">Video here, comments there</span></div>
+        <div class="tw-stage" aria-hidden="true">
+          <div class="tw-window tw-main">
+            <div class="compare-dots"><span></span><span></span><span></span><div class="mock-url">youtube.com/watch</div></div>
+            <div class="tw-main-body">
+              <div class="tw-video">
+                <div class="tw-scene tw-scene-a"></div>
+                <div class="tw-scene tw-scene-b"></div>
+                <div class="mock-controls">
+                  <div class="mock-progress"><span class="tw-progress"></span></div>
+                  <div class="mock-ctrl-row"><i class="c-pause"></i><i class="c-vol"></i><i class="c-time"></i><i class="c-spacer"></i><i class="c-btn"></i><i class="c-btn"></i><i class="c-btn"></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tw-window tw-pop">
+            <div class="tw-popbar"><span class="tw-popbar-title">youtube.com/watch</span></div>
+            <div class="tw-pop-body">
+              <div class="tw-pane tw-desc">
+                <div class="mock-row-header"><span>Description</span><span class="caret">&#9662;</span></div>
+                <div class="mock-title tw-title-a" style="width: 82%"></div>
+                <div class="mock-title tw-title-b" style="width: 64%"></div>
+                <div class="item-row channel-row">
+                  <div class="avatar thumb-amber"></div>
+                  <div class="stack-lines"><span class="t" style="width: 60%"></span><span style="width: 40%"></span></div>
+                </div>
+              </div>
+              <div class="tw-pane tw-rec">
+                <div class="mock-row-header"><span>Recommended</span><span class="caret">&#9662;</span></div>
+                <div class="tw-list tw-list-a">
+                  <div class="item-row"><div class="stack-thumb thumb-rose"></div><div class="stack-lines"><span class="t" style="width: 94%"></span><span class="t" style="width: 72%"></span><span style="width: 47%"></span></div></div>
+                  <div class="item-row tw-target-rec"><div class="stack-thumb thumb-emerald"></div><div class="stack-lines"><span class="t" style="width: 94%"></span><span class="t" style="width: 59%"></span><span style="width: 46%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-sky"></div><div class="stack-lines"><span class="t" style="width: 86%"></span><span class="t" style="width: 50%"></span><span style="width: 46%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-violet"></div><div class="stack-lines"><span class="t" style="width: 95%"></span><span class="t" style="width: 65%"></span><span style="width: 35%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-amber"></div><div class="stack-lines"><span class="t" style="width: 83%"></span><span class="t" style="width: 59%"></span><span style="width: 39%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-cyan"></div><div class="stack-lines"><span class="t" style="width: 84%"></span><span class="t" style="width: 47%"></span><span style="width: 47%"></span></div></div>
+                </div>
+                <div class="tw-list tw-list-b">
+                  <div class="item-row"><div class="stack-thumb thumb-violet"></div><div class="stack-lines"><span class="t" style="width: 81%"></span><span class="t" style="width: 64%"></span><span style="width: 42%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-amber"></div><div class="stack-lines"><span class="t" style="width: 94%"></span><span class="t" style="width: 65%"></span><span style="width: 35%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-cyan"></div><div class="stack-lines"><span class="t" style="width: 80%"></span><span class="t" style="width: 71%"></span><span style="width: 46%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-lime"></div><div class="stack-lines"><span class="t" style="width: 82%"></span><span class="t" style="width: 46%"></span><span style="width: 31%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-rose"></div><div class="stack-lines"><span class="t" style="width: 86%"></span><span class="t" style="width: 52%"></span><span style="width: 30%"></span></div></div>
+                  <div class="item-row"><div class="stack-thumb thumb-emerald"></div><div class="stack-lines"><span class="t" style="width: 94%"></span><span class="t" style="width: 55%"></span><span style="width: 44%"></span></div></div>
+                </div>
+              </div>
+              <div class="tw-pane tw-comments">
+                <div class="mock-row-header"><span>Comments</span><span class="caret">&#9662;</span></div>
+                <div class="tw-list">
+                  <div class="item-row"><div class="avatar thumb-emerald"></div><div class="stack-lines"><span class="t" style="width: 23%"></span><span style="width: 86%"></span><span style="width: 53%"></span></div></div>
+                  <div class="item-row"><div class="avatar thumb-amber"></div><div class="stack-lines"><span class="t" style="width: 23%"></span><span style="width: 90%"></span><span class="tw-ts">2:31</span></div></div>
+                  <div class="item-row"><div class="avatar thumb-rose"></div><div class="stack-lines"><span class="t" style="width: 27%"></span><span style="width: 70%"></span><span style="width: 44%"></span></div></div>
+                  <div class="item-row"><div class="avatar thumb-violet"></div><div class="stack-lines"><span class="t" style="width: 21%"></span><span style="width: 84%"></span><span style="width: 56%"></span></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="tw-cursor">
+            <svg class="cur-arrow" viewBox="0 0 16 16"><path d="M1 1v12.5l3.4-3.1 2.2 5 2.1-.9-2.2-4.9H11L1 1z" fill="#ffffff" stroke="#111111" stroke-width="1" stroke-linejoin="round"/></svg>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <section id="install" class="container section">
       <div class="install-grid">
         <div>
@@ -214,6 +285,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=12"></script>
+  <script src="script.js?v=13"></script>
 </body>
 </html>
