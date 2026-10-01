@@ -17,6 +17,10 @@
   <a href="https://junjing02.github.io/split-for-youtube/">See it in action →</a>
 </p>
 
+<p align="center">
+  <a href="https://junjing02.github.io/split-for-youtube/"><img src="docs/demo.webp" alt="Demo: YouTube's comments push the video off-screen; Split for YouTube keeps the video on the left with the comments beside it, adds ambient light, and can move the comments to a second window." width="100%" /></a>
+</p>
+
 ---
 
 ## Features
