@@ -1,0 +1,124 @@
+:root {
+  --bg: #ffffff;
+  --text: #0f0f0f;
+  --text-dim: #606060;
+  --border: rgba(0, 0, 0, 0.1);
+  --track: rgba(0, 0, 0, 0.18);
+  --track-on: #0f0f0f;
+  --knob: #ffffff;
+  --knob-on: #ffffff;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #212121;
+    --text: #f1f1f1;
+    --text-dim: #aaaaaa;
+    --border: rgba(255, 255, 255, 0.1);
+    --track: rgba(255, 255, 255, 0.22);
+    --track-on: #f1f1f1;
+    --knob: #f1f1f1;
+    --knob-on: #0f0f0f;
+  }
+}
+
+body {
+  width: 300px;
+  margin: 0;
+  padding: 14px 16px 12px;
+  background: var(--bg);
+  color: var(--text);
+  font: 13px/1.45 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+
+header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+header img {
+  border-radius: 5px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0 10px;
+  cursor: pointer;
+}
+
+.text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.title {
+  font-weight: 600;
+}
+
+.desc,
+.hint {
+  color: var(--text-dim);
+}
+
+/* The real checkbox stays in the DOM (keyboard, screen readers); the
+   switch is drawn by the span after it. */
+.row input {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--track);
+  transition: background-color 0.15s ease;
+}
+
+.switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: var(--knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  transition: transform 0.15s ease, background-color 0.15s ease;
+}
+
+.row input:checked + .switch {
+  background: var(--track-on);
+}
+
+.row input:checked + .switch::after {
+  transform: translateX(16px);
+  background: var(--knob-on);
+}
+
+.row input:focus-visible + .switch {
+  outline: 2px solid var(--track-on);
+  outline-offset: 2px;
+}
+
+.hint {
+  margin: 0;
+  font-size: 12px;
+}

@@ -1,5 +1,5 @@
-# Packages only the files the extension needs (manifest, content script and
-# stylesheet, icons) into split-for-youtube.zip and attaches it to the GitHub
+# Packages only the files the extension needs (manifest, everything in src/:
+# content script and stylesheet, background worker, toolbar panel; icons) into split-for-youtube.zip and attaches it to the GitHub
 # Release for the manifest's version. The landing page and README link to
 # releases/latest/download/split-for-youtube.zip, so the download always
 # matches main without uploading anything by hand.
@@ -28,7 +28,7 @@ jobs:
         run: |
           mkdir -p split-for-youtube/src split-for-youtube/icons
           cp manifest.json split-for-youtube/
-          cp src/content.js src/content.css split-for-youtube/src/
+          cp src/*.js src/*.css src/*.html split-for-youtube/src/
           cp icons/icon16.png icons/icon48.png icons/icon128.png split-for-youtube/icons/
           zip -r split-for-youtube.zip split-for-youtube
 

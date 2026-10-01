@@ -1,5 +1,13 @@
 (function () {
   let observer = null;
+  // Two-window mode (see the "Two-window mode" section near the bottom):
+  // "main" = this tab shows only the video, "companion" = this tab is the
+  // pop-up showing only the description, recommendations and comments,
+  // "none" = the normal split. The ytsplit=companion URL flag lets the
+  // pop-up take its role right away, before the background worker confirms.
+  const COMPANION_HINT = new URLSearchParams(location.search).get("ytsplit") === "companion";
+  let windowRole = COMPANION_HINT ? "companion" : "none";
+  let twoWindowMode = false;
   let startRetryScheduled = false;
   let dragState = null;
   let movedNodes = []; // { node, parent, next } — for safe restore on teardown
@@ -1133,6 +1141,9 @@
     if (!columns || !secondary || !primary) return;
 
     document.documentElement.classList.add("yt-split-active");
+    document.documentElement.classList.toggle("yt-split-solo", windowRole === "main");
+    document.documentElement.classList.toggle("yt-split-companion", windowRole === "companion");
+    if (windowRole === "companion") silenceCompanionVideo();
 
     let resizer = document.getElementById("yt-split-resizer");
     if (!resizer) {
@@ -1150,7 +1161,8 @@
       columns.appendChild(sidePane);
     }
 
-    ensureAmbient(columns);
+    if (windowRole === "companion") teardownAmbient();
+    else ensureAmbient(columns);
 
     // #below (title/channel/stats/description) moves out of the video
     // column entirely and into a small collapsible section here.
@@ -1162,6 +1174,18 @@
       onToggle: (c) => { secondaryCollapsed = c; }
     });
     moveNode(secondary, sidePane);
+
+    // Two-window pop-up: its window is narrow, and in YouTube's narrow
+    // (single-column) layout the recommendations list can be moved out of
+    // #secondary into the area under the player, which would put it inside
+    // our description pane. Bring it back; a no-op when it's already there.
+    if (windowRole === "companion") {
+      const results = document.querySelector("ytd-watch-next-secondary-results-renderer");
+      const related = results && results.parentElement && results.parentElement.id === "related" ? results.parentElement : results;
+      if (related && !secondary.contains(related)) {
+        moveNode(related, secondary.querySelector("#secondary-inner") || secondary);
+      }
+    }
 
     let vresizer = document.getElementById("yt-split-vresizer");
     if (!vresizer) {
@@ -1233,7 +1257,7 @@
   // confused YouTube's own cleanup and broke the next page (e.g. going
   // back to the home page).
   function teardownLayout() {
-    document.documentElement.classList.remove("yt-split-active");
+    document.documentElement.classList.remove("yt-split-active", "yt-split-solo", "yt-split-companion");
     document.body.classList.remove("yt-split-resizing", "yt-split-resizing-v");
     dragState = null;
     vDragState = null;
@@ -1301,6 +1325,9 @@
   const MIN_ACTIVATION_ASPECT = 1.15;
 
   function meetsActivationThreshold() {
+    // Two-window mode: neither the video-only main window nor the tall,
+    // narrow pop-up needs room for a second column.
+    if (windowRole !== "none") return true;
     const w = window.innerWidth;
     const h = window.innerHeight;
     if (w < MIN_ACTIVATION_WIDTH) return false;
@@ -1692,7 +1719,8 @@
     // Description pane: always start collapsed, same "every new
     // navigation" reset as the state above — see descExpanded's own
     // comment for why this is no longer persisted via localStorage.
-    descExpanded = false;
+    // (The two-window pop-up has the room, so it starts open there.)
+    descExpanded = windowRole === "companion";
     // Recommendations/comments: always start expanded, same reset — see
     // secondaryCollapsed/commentsCollapsed's own comment above.
     secondaryCollapsed = false;
@@ -1810,6 +1838,7 @@
   function onNavigateFinish() {
     start();
     applyShortsClass();
+    maybeClaimMain();
   }
 
   function isTypingTarget(el) {
@@ -1897,7 +1926,8 @@
 
       e.preventDefault();
       e.stopPropagation();
-      location.assign(channelLink.href);
+      if (windowRole === "companion") sendToBackground({ type: "navigateMain", url: channelLink.href });
+      else location.assign(channelLink.href);
     },
     true
   );
@@ -1920,6 +1950,143 @@
       teardownLayout();
     }
   });
+
+  // ---- Two-window mode ----
+  // Toggled from the toolbar panel (src/popup.*, stored as twoWindowMode).
+  // The video stays in this tab ("main", video only) and a pop-up window
+  // opens on the same video ("companion", description/recommendations/
+  // comments only). src/background.js owns the pairing and relays messages.
+  // A window can't show part of another window's page, so the pop-up is a
+  // second, real YouTube page: its own player is hidden and kept paused,
+  // and links clicked there drive the main window instead.
+
+  function sendToBackground(msg) {
+    try {
+      return chrome.runtime.sendMessage(msg).catch(() => null);
+    } catch (e) {
+      return Promise.resolve(null); // extension reloaded; this page is orphaned
+    }
+  }
+
+  function setRole(role) {
+    if (role === windowRole) return;
+    windowRole = role;
+    if (isWatchPage()) start();
+    else teardownLayout();
+  }
+
+  // Ask to be (or stay) the main tab whenever this is a visible watch page
+  // with the mode on; the background opens the pop-up or points it at this
+  // tab's video. Called on every navigation, so the pop-up follows along.
+  function maybeClaimMain() {
+    if (!twoWindowMode || windowRole === "companion") return;
+    if (!isWatchPage() || document.visibilityState !== "visible") return;
+    sendToBackground({
+      type: "claimMain",
+      url: location.href,
+      screen: { left: screen.availLeft, top: screen.availTop, width: screen.availWidth, height: screen.availHeight },
+    }).then((reply) => {
+      if (reply) setRole(reply.role);
+    });
+  }
+
+  // The pop-up's own player is hidden; keep it paused so it never plays
+  // sound or competes with the main window. (Not muted: YouTube saves the
+  // mute state as a preference, which would leak into the main window.)
+  function silenceCompanionVideo() {
+    const video = document.querySelector("#primary video, #movie_player video");
+    if (!video) return;
+    if (!video.paused) video.pause();
+    if (video.dataset.ytSplitSilenced === "1") return;
+    video.dataset.ytSplitSilenced = "1";
+    video.addEventListener("play", () => {
+      if (windowRole === "companion") video.pause();
+    });
+  }
+
+  // "123", "123s", "2m10s", "1h2m3s" -> seconds; null if not a timestamp.
+  function parseTimestamp(t) {
+    if (!t) return null;
+    if (/^\d+$/.test(t)) return Number(t);
+    const m = /^(?:(\d+)h)?(?:(\d+)m)?(?:(\d+)s)?$/.exec(t);
+    if (!m || !m[0]) return null;
+    return Number(m[1] || 0) * 3600 + Number(m[2] || 0) * 60 + Number(m[3] || 0);
+  }
+
+  function seekMainVideo(seconds) {
+    const video = document.querySelector("#primary video, #movie_player video");
+    if (!video) return;
+    video.currentTime = seconds;
+    video.play().catch(() => {});
+  }
+
+  // In the pop-up, YouTube links (videos, channels, playlists, search,
+  // hashtags) open in the main window instead, and a timestamp for the
+  // video being shown seeks the main video. Other links (external sites
+  // via /redirect, modifier-clicks for new tabs) behave normally.
+  const MAIN_WINDOW_LINK = /^\/(watch$|shorts\/|playlist|@|channel\/|c\/|user\/|hashtag\/|results|feed\/)/;
+  document.addEventListener(
+    "click",
+    (e) => {
+      if (windowRole !== "companion" || e.defaultPrevented) return;
+      if (e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const link = e.target.closest && e.target.closest("a[href]");
+      if (!link) return;
+      let url;
+      try {
+        url = new URL(link.href, location.href);
+      } catch (err) {
+        return;
+      }
+      if (!/(^|\.)youtube\.com$/.test(url.hostname) || !MAIN_WINDOW_LINK.test(url.pathname)) return;
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      const seconds = parseTimestamp(url.searchParams.get("t"));
+      const sameVideo = url.pathname === "/watch" && url.searchParams.get("v") === new URLSearchParams(location.search).get("v");
+      if (sameVideo && seconds !== null) {
+        sendToBackground({ type: "seek", seconds });
+      } else {
+        url.searchParams.delete("ytsplit");
+        sendToBackground({ type: "navigateMain", url: url.href });
+      }
+    },
+    true
+  );
+
+  try {
+    chrome.runtime.onMessage.addListener((msg) => {
+      if (!msg) return;
+      if (msg.type === "role") setRole(msg.role);
+      else if (msg.type === "seek" && windowRole === "main") seekMainVideo(msg.seconds);
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local" || !changes.twoWindowMode) return;
+      twoWindowMode = !!changes.twoWindowMode.newValue;
+      if (twoWindowMode) maybeClaimMain();
+      else if (windowRole === "main") setRole("none");
+    });
+  } catch (e) {
+    // extension context gone; nothing to sync
+  }
+
+  // Switching to this tab (or un-minimizing its window) moves the pairing here.
+  document.addEventListener("visibilitychange", maybeClaimMain);
+
+  // Learn this tab's role and the mode. The pop-up retries briefly in case
+  // its page loaded before the background finished recording the pairing.
+  function hello(attempt) {
+    sendToBackground({ type: "hello" }).then((reply) => {
+      if (!reply) return;
+      twoWindowMode = !!reply.mode;
+      if (reply.role === "none" && COMPANION_HINT && twoWindowMode && attempt < 5) {
+        setTimeout(() => hello(attempt + 1), 400);
+        return;
+      }
+      setRole(reply.role);
+      maybeClaimMain();
+    });
+  }
+  hello(0);
 
   onNavigateFinish();
 

@@ -231,6 +231,34 @@ html.yt-split-active ytd-masthead #background {
   background: transparent !important;
 }
 
+/* Two-window mode (content.js "Two-window mode", src/background.js).
+   Main window (.yt-split-solo): the video alone, using the full width; the
+   side pane and divider are hidden (its contents live on in the pop-up).
+   Pop-up window (.yt-split-companion): the side pane alone, filling the
+   window; the player is hidden (and kept paused by content.js). The grid
+   collapses to a single column in both, so no empty track is left behind. */
+html.yt-split-active.yt-split-solo #columns,
+html.yt-split-active.yt-split-companion #columns {
+  grid-template-columns: minmax(0, 1fr) !important;
+}
+
+html.yt-split-active.yt-split-solo #yt-split-side-pane,
+html.yt-split-active.yt-split-solo #yt-split-resizer,
+html.yt-split-active.yt-split-companion #primary,
+html.yt-split-active.yt-split-companion #yt-split-resizer {
+  display: none !important;
+}
+
+html.yt-split-active.yt-split-companion #yt-split-side-pane {
+  grid-column: 1 !important;
+}
+
+/* YouTube's narrow layout (the pop-up is a narrow window) can hide
+   #secondary; it must stay visible as the Recommended pane. */
+html.yt-split-active.yt-split-companion #secondary {
+  display: block !important;
+}
+
 /* Left column: just the video, letterboxed/centered to fill the column.
    grid-column/grid-row are !important here because #primary is a
    YouTube-native element with its own extensive native styles — without

@@ -34,6 +34,7 @@ Split for YouTube fixes that. The video gets its own column, and the description
 - **Collapsible sections** — description, recommendations, and comments each collapse to a single header with one click.
 - **Live streams supported** — recommendations automatically become live chat while a stream is live.
 - **Ambient light** — with YouTube's Ambient mode on (dark theme), the video's colors glow softly across the whole background, spreading out from each edge of the video and following it frame by frame. Turn Ambient mode off in the player settings and the background goes back to normal.
+- **Two windows** — flip the switch in the toolbar panel to keep the video in your window and open the description, recommendations and comments in a separate pop-up window. Click a video, channel or timestamp in the pop-up and the main window follows; change videos in the main window and the pop-up follows. Close the pop-up to go back to one window.
 - **Stays out of the way** — theater mode, Shorts, and smaller windows all fall back to YouTube's normal layout, untouched.
 
 ## Install

@@ -1,0 +1,27 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="color-scheme" content="light dark" />
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+  <header>
+    <img src="../icons/icon48.png" width="22" height="22" alt="" />
+    <h1>Split for YouTube</h1>
+  </header>
+
+  <label class="row" for="twoWindows">
+    <span class="text">
+      <span class="title">Two windows</span>
+      <span class="desc">Keep the video in this window and open the description, recommendations and comments in a separate one. Both stay in sync.</span>
+    </span>
+    <input type="checkbox" id="twoWindows" role="switch" />
+    <span class="switch" aria-hidden="true"></span>
+  </label>
+
+  <p class="hint">Close the pop-up window any time to go back to one window.</p>
+
+  <script src="popup.js"></script>
+</body>
+</html>
