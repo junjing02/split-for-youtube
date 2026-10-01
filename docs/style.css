@@ -1198,10 +1198,13 @@ img {
    recommendation (both windows switch to the new video) then a timestamp
    (the main video's progress jumps). The cursor is positioned by script
    from the real elements' rectangles, so it lands on target at any size. */
+/* Same footprint as the hero mockup (max 1032px wide, 16:10 overall), so
+   the two demos read as one consistent set. */
 .tw-demo {
   position: relative;
   isolation: isolate;
-  margin-top: 56px;
+  max-width: 1032px;
+  margin: 56px auto 0;
 }
 
 /* Same ambient spill as the hero demo, behind the main window; dark mode
@@ -1226,8 +1229,11 @@ img {
   position: relative;
   display: grid;
   grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr);
-  gap: 20px;
+  grid-template-rows: minmax(0, 1fr);
+  gap: 16px;
   align-items: stretch;
+  aspect-ratio: 16 / 10;
+  min-height: 0; /* don't let pane content stretch it past 16:10 */
 }
 
 .tw-window {
@@ -1241,17 +1247,42 @@ img {
   box-shadow: var(--shadow-window);
 }
 
-.tw-main {
-  aspect-ratio: 16 / 10;
+.tw-window {
+  min-height: 0;
 }
 
+/* Mini YouTube top bar, as both real windows show. */
+.tw-masthead {
+  flex-shrink: 0;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.tw-masthead .mh-search {
+  max-width: 46%;
+  height: 16px;
+}
+
+/* Main window: video only, centered in the space below the top bar, like
+   the real video-only window. */
 .tw-main-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.tw-video-area {
   flex: 1;
   min-height: 0;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3%;
+  padding: 0 3% 3%;
 }
 
 .tw-video {
@@ -1306,20 +1337,9 @@ img {
   width: 58%;
 }
 
-/* Second window: a pop-up has a slim title bar, no tabs or toolbar. */
-.tw-popbar {
-  flex-shrink: 0;
-  height: 30px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-raised);
-}
-
-.tw-popbar-title {
-  font-size: 11px;
-  color: var(--text-dim);
+/* Second window: narrower, so its address pill takes more of the bar. */
+.tw-pop .mock-url {
+  width: 70%;
 }
 
 .tw-pop-body {
@@ -1328,7 +1348,7 @@ img {
   display: flex;
   flex-direction: column;
   gap: 8px;
-  padding: 8px;
+  padding: 0 8px 8px;
   overflow: hidden;
   transition: opacity 0.25s ease;
 }
@@ -1449,7 +1469,13 @@ img {
 
   .tw-stage {
     grid-template-columns: 1fr;
+    grid-template-rows: none;
     gap: 14px;
+    aspect-ratio: auto;
+  }
+
+  .tw-main {
+    aspect-ratio: 16 / 10;
   }
 
   .tw-pop {
