@@ -1,0 +1,48 @@
+# Packages only the files the extension needs (manifest, content script and
+# stylesheet, icons) into split-for-youtube.zip and attaches it to the GitHub
+# Release for the manifest's version. The landing page and README link to
+# releases/latest/download/split-for-youtube.zip, so the download always
+# matches main without uploading anything by hand.
+name: Build extension ZIP
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - manifest.json
+      - "src/**"
+      - "icons/*.png"
+      - .github/workflows/release-zip.yml
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  zip:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build ZIP
+        run: |
+          mkdir -p split-for-youtube/src split-for-youtube/icons
+          cp manifest.json split-for-youtube/
+          cp src/content.js src/content.css split-for-youtube/src/
+          cp icons/icon16.png icons/icon48.png icons/icon128.png split-for-youtube/icons/
+          zip -r split-for-youtube.zip split-for-youtube
+
+      - name: Publish to the release for this version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION=$(jq -r .version manifest.json)
+          TAG="v$VERSION"
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            gh release upload "$TAG" split-for-youtube.zip --clobber
+          else
+            gh release create "$TAG" split-for-youtube.zip \
+              --title "Split for YouTube $VERSION" \
+              --notes "Unzip, then in chrome://extensions turn on Developer mode, click Load unpacked and choose the split-for-youtube folder." \
+              --latest
+          fi
