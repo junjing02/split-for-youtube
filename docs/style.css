@@ -1276,6 +1276,7 @@ img {
   position: relative;
 }
 
+/* The extension's real icon (docs/icon.png = icons/icon128.png). */
 .tw-ext-icon {
   position: absolute;
   right: 14px;
@@ -1284,18 +1285,6 @@ img {
   height: 16px;
   transform: translateY(-50%);
   border-radius: 4px;
-  background: var(--text);
-  opacity: 0.75;
-}
-
-.tw-ext-icon::after {
-  content: "";
-  position: absolute;
-  top: 4px;
-  bottom: 4px;
-  left: 9px;
-  width: 2px;
-  background: var(--mock-bg);
 }
 
 .tw-panel {
@@ -1332,11 +1321,9 @@ img {
 }
 
 .tw-panel-icon {
-  width: 12px;
-  height: 12px;
+  width: 14px;
+  height: 14px;
   border-radius: 3px;
-  background: var(--text);
-  opacity: 0.75;
 }
 
 .tw-panel-row {
