@@ -31,6 +31,8 @@ jobs:
           cp src/*.js src/*.css src/*.html split-for-youtube/src/
           cp icons/icon16.png icons/icon48.png icons/icon128.png split-for-youtube/icons/
           zip -r split-for-youtube.zip split-for-youtube
+          # Chrome Web Store upload: manifest.json must sit at the top level.
+          (cd split-for-youtube && zip -r ../split-for-youtube-store.zip .)
 
       - name: Publish to the release for this version
         env:
@@ -39,9 +41,9 @@ jobs:
           VERSION=$(jq -r .version manifest.json)
           TAG="v$VERSION"
           if gh release view "$TAG" >/dev/null 2>&1; then
-            gh release upload "$TAG" split-for-youtube.zip --clobber
+            gh release upload "$TAG" split-for-youtube.zip split-for-youtube-store.zip --clobber
           else
-            gh release create "$TAG" split-for-youtube.zip \
+            gh release create "$TAG" split-for-youtube.zip split-for-youtube-store.zip \
               --title "Split for YouTube $VERSION" \
               --notes "Unzip, then in chrome://extensions turn on Developer mode, click Load unpacked and choose the split-for-youtube folder." \
               --latest

@@ -1919,6 +1919,46 @@ img {
   color: var(--text);
 }
 
+/* Reading pages (privacy policy). */
+.prose {
+  max-width: 720px;
+}
+
+.prose h2 {
+  margin: 48px 0 12px;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+}
+
+.prose p,
+.prose li {
+  color: var(--text-dim);
+}
+
+.prose ul {
+  padding-left: 20px;
+}
+
+.prose li + li {
+  margin-top: 8px;
+}
+
+.prose strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.prose a {
+  color: var(--text);
+  text-underline-offset: 3px;
+}
+
+.prose-meta {
+  margin-top: 48px;
+  font-size: 14px;
+}
+
 /* Footer */
 
 .footer {
