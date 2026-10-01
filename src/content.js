@@ -1050,6 +1050,59 @@
     true
   );
 
+  // ---- Subscribe button repair ----
+  // When subscribed, YouTube shows the notification bell button and hides
+  // the separate Subscribe/"Subscribed" button. Reported: correct on first
+  // load, but after the split turned off and on again (e.g. resizing the
+  // window across the activation threshold) both showed, "Subscribed"
+  // stacked over the bell, and stayed that way, even in YouTube's own
+  // layout. Most likely YouTube's component re-renders in its two-button
+  // form when #below (which contains it) is detached and re-attached by
+  // moveNode(), which happens on every activation and teardown and can't be
+  // avoided. So restore the intended look directly: if the bell is showing
+  // and the separate button is ALSO showing, hide the separate one; once
+  // the bell is gone (unsubscribed), undo that so "Subscribe" comes back.
+  // Uses actual rendered boxes (getClientRects), so it does nothing
+  // whenever YouTube already shows the right thing. Runs on every layout
+  // pass, shortly after teardown, after window resizes and after clicks.
+  const SUB_HIDDEN_ATTR = "data-yt-split-hidden";
+
+  function isRendered(el) {
+    return !!el && el.getClientRects().length > 0;
+  }
+
+  function repairSubscribeButtons() {
+    document.querySelectorAll("ytd-subscribe-button-renderer").forEach((renderer) => {
+      const shape = renderer.querySelector("#subscribe-button-shape");
+      const bell = renderer.querySelector("#notification-preference-button");
+      if (!shape || !bell) return;
+      const bellShown = isRendered(bell) && bell.querySelector("button") != null;
+      if (bellShown && isRendered(shape)) {
+        shape.style.setProperty("display", "none", "important");
+        shape.setAttribute(SUB_HIDDEN_ATTR, "");
+      } else if (!bellShown && shape.hasAttribute(SUB_HIDDEN_ATTR)) {
+        shape.style.removeProperty("display");
+        shape.removeAttribute(SUB_HIDDEN_ATTR);
+      }
+    });
+  }
+
+  // A couple of passes, since YouTube can re-render the button a moment
+  // after whatever triggered it.
+  let subscribeRepairTimers = [];
+  function scheduleSubscribeRepair() {
+    subscribeRepairTimers.forEach(clearTimeout);
+    subscribeRepairTimers = [300, 1200].map((ms) => setTimeout(repairSubscribeButtons, ms));
+  }
+
+  document.addEventListener(
+    "click",
+    () => {
+      if (isWatchPage()) scheduleSubscribeRepair();
+    },
+    true
+  );
+
   function ensureLayout() {
     if (!isWatchPage()) {
       // Self-heal: if this ever runs while we're not on a watch page (e.g.
@@ -1157,6 +1210,7 @@
     });
 
     spanFullWidth(columns);
+    repairSubscribeButtons();
 
     // Deliberately NOT reclamping side/top width here. This function runs
     // on every MutationObserver-triggered pass — and YouTube's page mutates
@@ -1207,6 +1261,9 @@
     if (resizer) resizer.remove();
 
     teardownAmbient();
+    // #below is back in YouTube's own layout; fix the Subscribe button
+    // there too once YouTube has re-rendered it.
+    scheduleSubscribeRepair();
   }
 
   function nudgePlayerResize() {
@@ -1880,6 +1937,7 @@
     clearTimeout(resizeDebounce);
     resizeDebounce = setTimeout(() => {
       if (!isWatchPage()) return;
+      scheduleSubscribeRepair();
 
       const isActive = document.documentElement.classList.contains("yt-split-active");
       if (!meetsActivationThreshold()) {
