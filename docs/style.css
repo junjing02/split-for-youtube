@@ -581,22 +581,13 @@ img {
   gap: 5px;
 }
 
+/* Neutral, grayscale site mark (not YouTube's red play logo), so the
+   mockups don't look like YouTube's own branding. */
 .mh-logo-mark {
-  position: relative;
-  width: 18px;
-  height: 13px;
+  width: 14px;
+  height: 14px;
   border-radius: 4px;
-  background: #ff0033;
-}
-
-.mh-logo-mark::after {
-  content: "";
-  position: absolute;
-  left: 7px;
-  top: 3.5px;
-  border-left: 5px solid #ffffff;
-  border-top: 3px solid transparent;
-  border-bottom: 3px solid transparent;
+  background: var(--line-strong);
 }
 
 .mh-logo-text {
@@ -2062,15 +2053,9 @@ img {
   }
 
   .mh-logo-mark {
-    width: 14px;
-    height: 10px;
+    width: 11px;
+    height: 11px;
     border-radius: 3px;
-  }
-
-  .mh-logo-mark::after {
-    left: 5px;
-    top: 2px;
-    border-left-width: 4px;
   }
 
   .mh-logo-text {
