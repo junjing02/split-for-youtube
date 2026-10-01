@@ -249,6 +249,21 @@ html.yt-split-active.yt-split-companion #yt-split-resizer {
   display: none !important;
 }
 
+/* In a narrow window YouTube moves the player out of #primary into a
+   full-width container above #columns (and its theater/wide variants
+   elsewhere), so hiding #primary alone left an empty black video area at
+   the top of a narrow pop-up. Hide every container the player can live
+   in; its video stays paused regardless (content.js). */
+html.yt-split-active.yt-split-companion #full-bleed-container,
+html.yt-split-active.yt-split-companion #player-full-bleed-container,
+html.yt-split-active.yt-split-companion #player-theater-container,
+html.yt-split-active.yt-split-companion #player-wide-container,
+html.yt-split-active.yt-split-companion #player-container-outer,
+html.yt-split-active.yt-split-companion #player-container,
+html.yt-split-active.yt-split-companion ytd-watch-flexy #player {
+  display: none !important;
+}
+
 html.yt-split-active.yt-split-companion #yt-split-side-pane {
   grid-column: 1 !important;
 }
