@@ -1192,14 +1192,16 @@ img {
   line-height: 1.6;
 }
 
-/* Two-window demo (script.js drives it with state classes on #twDemo):
-   a main window showing only the video and a narrow second window with the
-   description, recommendations and comments. A cursor clicks a
-   recommendation (both windows switch to the new video) then a timestamp
-   (the main video's progress jumps). The cursor is positioned by script
-   from the real elements' rectangles, so it lands on target at any size. */
-/* Same footprint as the hero mockup (max 1032px wide, 16:10 overall), so
-   the two demos read as one consistent set. */
+/* Two-window demo (script.js drives it with state classes on #twDemo).
+   The story: one window in the normal split -> the cursor opens the
+   extension's toolbar panel and flips "Two windows" -> the main window
+   shrinks to video only while its panes fade out and a second window
+   slides in beside it holding them -> the cursor clicks a recommendation
+   (both windows switch videos) and a timestamp (the video jumps). Windows
+   and the video are absolutely positioned with percentage boxes, like the
+   hero demo, so the change animates smoothly; the cursor is placed by
+   script from the real elements' rectangles. Same footprint as the hero
+   mockup (max 1032px wide, 16:10). */
 .tw-demo {
   position: relative;
   isolation: isolate;
@@ -1207,8 +1209,8 @@ img {
   margin: 56px auto 0;
 }
 
-/* Same ambient spill as the hero demo, behind the main window; dark mode
-   only (--spill is 0 in light mode). */
+/* Ambient spill around the main window, dark mode only (--spill is 0 in
+   light mode). */
 .tw-demo::before {
   content: "";
   position: absolute;
@@ -1227,48 +1229,155 @@ img {
 
 .tw-stage {
   position: relative;
-  display: grid;
-  grid-template-columns: minmax(0, 2.4fr) minmax(0, 1fr);
-  grid-template-rows: minmax(0, 1fr);
-  gap: 16px;
-  align-items: stretch;
   aspect-ratio: 16 / 10;
-  min-height: 0; /* don't let pane content stretch it past 16:10 */
 }
 
 .tw-window {
+  position: absolute;
+  top: 0;
+  height: 100%;
   display: flex;
   flex-direction: column;
-  min-width: 0;
   overflow: hidden;
   border: 1px solid var(--border);
   border-radius: 14px;
   background: var(--mock-bg);
   box-shadow: var(--shadow-window);
+  transition: left 0.85s var(--ease), top 0.85s var(--ease), width 0.85s var(--ease),
+    height 0.85s var(--ease), transform 0.85s var(--ease), opacity 0.5s ease;
 }
 
-.tw-window {
-  min-height: 0;
+/* One window (start): full frame. Two windows: video window on the left,
+   second window sliding in on the right. */
+.tw-main {
+  left: 0;
+  width: 100%;
 }
 
-/* Mini YouTube top bar, as both real windows show. */
-.tw-masthead {
-  flex-shrink: 0;
-  height: 32px;
+.tw-demo.tw-two .tw-main {
+  width: 70%;
+}
+
+.tw-pop {
+  left: 71.6%;
+  width: 28.4%;
+  opacity: 0;
+  transform: translateX(8%) scale(0.97);
+}
+
+.tw-demo.tw-two .tw-pop {
+  opacity: 1;
+  transform: none;
+  transition-delay: 0.2s;
+}
+
+/* The extension's icon in the browser bar, and the toolbar panel it opens. */
+.tw-bar {
+  position: relative;
+}
+
+.tw-ext-icon {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  width: 16px;
+  height: 16px;
+  transform: translateY(-50%);
+  border-radius: 4px;
+  background: var(--text);
+  opacity: 0.75;
+}
+
+.tw-ext-icon::after {
+  content: "";
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  left: 9px;
+  width: 2px;
+  background: var(--mock-bg);
+}
+
+.tw-panel {
+  position: absolute;
+  z-index: 4;
+  top: 42px;
+  right: 8px;
+  width: 210px;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.3);
+  font-size: 11px;
+  opacity: 0;
+  transform: translateY(-6px);
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  pointer-events: none;
+}
+
+.tw-demo.tw-panel-open .tw-panel {
+  opacity: 1;
+  transform: none;
+}
+
+.tw-panel-head {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 1px solid var(--border);
+  font-weight: 600;
+}
+
+.tw-panel-icon {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--text);
+  opacity: 0.75;
+}
+
+.tw-panel-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 0 12px;
+  color: var(--text);
 }
 
-.tw-masthead .mh-search {
-  max-width: 46%;
+.tw-switch {
+  position: relative;
+  width: 28px;
   height: 16px;
+  border-radius: 999px;
+  background: var(--line-strong);
+  transition: background-color 0.2s ease;
 }
 
-/* Main window: video only, centered in the space below the top bar, like
-   the real video-only window. */
+.tw-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.2s ease;
+}
+
+.tw-demo.tw-toggled .tw-switch {
+  background: var(--accent);
+}
+
+.tw-demo.tw-toggled .tw-switch::after {
+  transform: translateX(12px);
+  background: var(--on-accent);
+}
+
+/* Main window body: ambient glow behind, mini top bar, then the content
+   (video + side pane in the split; video alone, centered, in two windows). */
 .tw-main-body {
   position: relative;
   isolation: isolate;
@@ -1279,9 +1388,8 @@ img {
   overflow: hidden;
 }
 
-/* Ambient light inside the main window: the video's colors glowing behind
-   it, as the extension draws it. One layer per demo video, cross-faded
-   with the video on switch. Dark mode only (--mock-glow is 0 in light). */
+/* Ambient light inside the main window, one layer per demo video,
+   cross-faded on switch. Dark mode only (--mock-glow is 0 in light). */
 .tw-ambient {
   position: absolute;
   z-index: -1;
@@ -1316,23 +1424,64 @@ img {
   opacity: var(--mock-glow);
 }
 
-.tw-video-area {
-  flex: 1;
-  min-height: 0;
+/* Mini YouTube top bar, as both real windows show. */
+.tw-masthead {
+  flex-shrink: 0;
+  height: 32px;
   display: flex;
   align-items: center;
-  justify-content: center;
-  padding: 0 3% 3%;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 0 12px;
+}
+
+.tw-masthead .mh-search {
+  max-width: 46%;
+  height: 16px;
+}
+
+.tw-content {
+  position: relative;
+  flex: 1;
+  min-height: 0;
 }
 
 .tw-video {
-  position: relative;
-  width: 100%;
-  max-height: 100%;
+  position: absolute;
+  left: 1.5%;
+  top: 50%;
+  width: 64%;
   aspect-ratio: 16 / 9;
+  transform: translateY(-50%);
   overflow: hidden;
   border-radius: 8px;
   background: #000000;
+  transition: left 0.85s var(--ease), top 0.85s var(--ease), width 0.85s var(--ease),
+    transform 0.85s var(--ease);
+}
+
+.tw-demo.tw-two .tw-video {
+  left: 3%;
+  width: 94%;
+}
+
+/* The split's side pane, inside the main window; in two windows its panes
+   fade out towards the second window. */
+.tw-side {
+  position: absolute;
+  top: 1%;
+  bottom: 2.5%;
+  right: 1.5%;
+  width: 31%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: opacity 0.45s ease, transform 0.85s var(--ease);
+}
+
+.tw-demo.tw-two .tw-side {
+  opacity: 0;
+  transform: translateX(14%);
 }
 
 /* Two "videos": A (the hero's teal-and-orange scene) and B (cooler, the
@@ -1421,7 +1570,7 @@ img {
   flex: 1 1 0;
 }
 
-.tw-pop .caret {
+.tw-demo .caret {
   opacity: 1;
 }
 
@@ -1502,28 +1651,66 @@ img {
   transform: scale(0.8);
 }
 
+/* Phones: windows stack. One window fills the frame with the video on top
+   and the panes below; two windows put the video window on top and the
+   second window underneath. */
 @media (max-width: 640px) {
   .tw-demo {
     margin-top: 40px;
   }
 
   .tw-stage {
-    grid-template-columns: 1fr;
-    grid-template-rows: none;
-    gap: 14px;
-    aspect-ratio: auto;
+    aspect-ratio: 3 / 4;
   }
 
-  .tw-main {
-    aspect-ratio: 16 / 10;
+  .tw-demo.tw-two .tw-main {
+    width: 100%;
+    height: 52%;
   }
 
   .tw-pop {
-    height: 400px;
+    left: 0;
+    top: 55%;
+    width: 100%;
+    height: 45%;
+    transform: translateY(8%) scale(0.97);
+  }
+
+  .tw-video {
+    left: 3%;
+    top: 3%;
+    width: 94%;
+    transform: none;
+  }
+
+  .tw-demo.tw-two .tw-video {
+    left: 10%;
+    top: 50%;
+    width: 80%;
+    transform: translateY(-50%);
+  }
+
+  .tw-side {
+    left: 3%;
+    right: 3%;
+    width: auto;
+    top: 52%;
+  }
+
+  .tw-demo.tw-two .tw-side {
+    transform: translateY(14%);
+  }
+
+  .tw-panel {
+    width: 180px;
   }
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .tw-window,
+  .tw-video,
+  .tw-side,
+  .tw-panel,
   .tw-scene,
   .tw-ambient,
   .tw-cursor,

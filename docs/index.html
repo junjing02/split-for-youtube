@@ -15,7 +15,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap" />
   <!-- ?v= busts GitHub Pages' 10-minute browser cache (max-age=600) so new HTML never
        loads with a stale stylesheet/script. Bump it whenever style.css or script.js changes. -->
-  <link rel="stylesheet" href="style.css?v=15" />
+  <link rel="stylesheet" href="style.css?v=16" />
 </head>
 <body>
   <header class="nav">
@@ -188,10 +188,10 @@
       <p class="section-lead">Switch on Two windows from the toolbar. The video fills your window, everything else opens beside it, and the two stay in sync.</p>
 
       <div class="tw-demo" id="twDemo">
-        <div class="morph-label" aria-live="polite"><span class="morph-caption tw-caption">Video here, comments there</span></div>
+        <div class="morph-label" aria-live="polite"><span class="morph-caption tw-caption">One window: the normal split</span></div>
         <div class="tw-stage" aria-hidden="true">
           <div class="tw-window tw-main">
-            <div class="compare-dots"><span></span><span></span><span></span><div class="mock-url">youtube.com/watch</div></div>
+            <div class="compare-dots tw-bar"><span></span><span></span><span></span><div class="mock-url">youtube.com/watch</div><i class="tw-ext-icon"></i></div>
             <div class="tw-main-body">
               <div class="tw-ambient tw-ambient-a"></div>
               <div class="tw-ambient tw-ambient-b"></div>
@@ -200,16 +200,42 @@
                 <div class="mh-search"><span class="mh-search-box"></span><span class="mh-search-btn"></span></div>
                 <span class="mh-avatar"></span>
               </div>
-              <div class="tw-video-area">
-              <div class="tw-video">
-                <div class="tw-scene tw-scene-a"></div>
-                <div class="tw-scene tw-scene-b"></div>
-                <div class="mock-controls">
-                  <div class="mock-progress"><span class="tw-progress"></span></div>
-                  <div class="mock-ctrl-row"><i class="c-pause"></i><i class="c-vol"></i><i class="c-time"></i><i class="c-spacer"></i><i class="c-btn"></i><i class="c-btn"></i><i class="c-btn"></i></div>
+              <div class="tw-content">
+                <div class="tw-video">
+                  <div class="tw-scene tw-scene-a"></div>
+                  <div class="tw-scene tw-scene-b"></div>
+                  <div class="mock-controls">
+                    <div class="mock-progress"><span class="tw-progress"></span></div>
+                    <div class="mock-ctrl-row"><i class="c-pause"></i><i class="c-vol"></i><i class="c-time"></i><i class="c-spacer"></i><i class="c-btn"></i><i class="c-btn"></i><i class="c-btn"></i></div>
+                  </div>
+                </div>
+                <div class="tw-side">
+                  <div class="tw-pane tw-desc"><div class="mock-row-header"><span>Description</span><span class="caret">&#9656;</span></div></div>
+                  <div class="tw-pane tw-rec">
+                    <div class="mock-row-header"><span>Recommended</span><span class="caret">&#9662;</span></div>
+                    <div class="tw-list">
+                    <div class="item-row"><div class="stack-thumb thumb-rose"></div><div class="stack-lines"><span class="t" style="width: 89%"></span><span class="t" style="width: 71%"></span><span style="width: 32%"></span></div></div>
+                    <div class="item-row"><div class="stack-thumb thumb-emerald"></div><div class="stack-lines"><span class="t" style="width: 80%"></span><span class="t" style="width: 63%"></span><span style="width: 39%"></span></div></div>
+                    <div class="item-row"><div class="stack-thumb thumb-sky"></div><div class="stack-lines"><span class="t" style="width: 93%"></span><span class="t" style="width: 57%"></span><span style="width: 46%"></span></div></div>
+                    <div class="item-row"><div class="stack-thumb thumb-violet"></div><div class="stack-lines"><span class="t" style="width: 91%"></span><span class="t" style="width: 49%"></span><span style="width: 36%"></span></div></div>
+                    <div class="item-row"><div class="stack-thumb thumb-amber"></div><div class="stack-lines"><span class="t" style="width: 88%"></span><span class="t" style="width: 59%"></span><span style="width: 30%"></span></div></div>
+                    </div>
+                  </div>
+                  <div class="tw-pane tw-comments">
+                    <div class="mock-row-header"><span>Comments</span><span class="caret">&#9662;</span></div>
+                    <div class="tw-list">
+                    <div class="item-row"><div class="avatar thumb-violet"></div><div class="stack-lines"><span class="t" style="width: 23%"></span><span style="width: 89%"></span><span style="width: 49%"></span></div></div>
+                    <div class="item-row"><div class="avatar thumb-cyan"></div><div class="stack-lines"><span class="t" style="width: 20%"></span><span style="width: 73%"></span><span style="width: 37%"></span></div></div>
+                    <div class="item-row"><div class="avatar thumb-rose"></div><div class="stack-lines"><span class="t" style="width: 31%"></span><span style="width: 85%"></span><span style="width: 48%"></span></div></div>
+                    <div class="item-row"><div class="avatar thumb-sky"></div><div class="stack-lines"><span class="t" style="width: 20%"></span><span style="width: 86%"></span><span style="width: 55%"></span></div></div>
+                    </div>
+                  </div>
                 </div>
               </div>
-              </div>
+            </div>
+            <div class="tw-panel">
+              <div class="tw-panel-head"><i class="tw-panel-icon"></i><span>Split for YouTube</span></div>
+              <div class="tw-panel-row"><span>Two windows</span><i class="tw-switch"></i></div>
             </div>
           </div>
 
@@ -298,6 +324,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=15"></script>
+  <script src="script.js?v=16"></script>
 </body>
 </html>

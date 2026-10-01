@@ -135,18 +135,37 @@ if (morphDemo) {
   }
 }
 
-// Two-window demo: a cursor clicks a recommendation in the second window
-// (both windows switch to that video), then a timestamp in a comment (the
-// main video jumps). State classes on #twDemo carry the visuals
-// (style.css); the cursor is placed by measuring the real target elements,
-// so it lands on them at any size. Runs only while on screen; with
-// prefers-reduced-motion it stays on the static first frame.
+// Two-window demo: starts as one window in the normal split; the cursor
+// opens the extension's toolbar panel and flips "Two windows"; the main
+// window shrinks to video only as a second window slides in with the
+// panes; then the cursor clicks a recommendation (both windows switch
+// videos) and a timestamp (the main video jumps); then it loops. State
+// classes on #twDemo carry the visuals (style.css); the cursor is placed by
+// measuring the real target elements, so it lands on them at any size.
+// Runs only while on screen; with prefers-reduced-motion it shows the
+// two-window state as a still frame.
 const twDemo = document.getElementById("twDemo");
-if (twDemo && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && "IntersectionObserver" in window) {
+if (twDemo) {
   const stage = twDemo.querySelector(".tw-stage");
   const cursor = twDemo.querySelector(".tw-cursor");
   const caption = twDemo.querySelector(".tw-caption");
-  const STATES = ["tw-cursor-on", "tw-press", "tw-press-rec", "tw-press-ts", "tw-reloading", "tw-switched", "tw-seeked"];
+  const STATES = [
+    "tw-two",
+    "tw-cursor-on",
+    "tw-press",
+    "tw-panel-open",
+    "tw-toggled",
+    "tw-press-rec",
+    "tw-press-ts",
+    "tw-reloading",
+    "tw-switched",
+    "tw-seeked",
+  ];
+  const ONE = "One window: the normal split";
+  const TOGGLE = "Switch on Two windows from the toolbar";
+  const TWO = "Video here, comments there";
+  const SWITCH = "Click a video in the second window";
+  const SEEK = "Click a timestamp to jump";
 
   function swapCaption(text) {
     if (!caption || !text || caption.textContent === text) return;
@@ -158,12 +177,12 @@ if (twDemo && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && 
   }
 
   // Cursor hotspot onto an element, a little in from its left edge.
-  function pointAt(selector) {
+  function pointAt(selector, xFraction = 0.3) {
     const el = twDemo.querySelector(selector);
     if (!el) return;
     const r = el.getBoundingClientRect();
     const s = stage.getBoundingClientRect();
-    cursor.style.left = `${r.left - s.left + Math.min(r.width * 0.3, 40)}px`;
+    cursor.style.left = `${r.left - s.left + Math.min(r.width * xFraction, 40)}px`;
     cursor.style.top = `${r.top - s.top + r.height * 0.5}px`;
   }
 
@@ -173,51 +192,60 @@ if (twDemo && !window.matchMedia("(prefers-reduced-motion: reduce)").matches && 
     cursor.style.top = "104%";
   }
 
-  const START = "Video here, comments there";
-  const SWITCH = "Click a video in the second window";
-  const SEEK = "Click a timestamp to jump";
-  const STEPS = [
-    { cls: [], caption: START, hold: 2200, enter: park },
-    { cls: ["tw-cursor-on"], caption: SWITCH, hold: 1000, enter: () => pointAt(".tw-list-a .tw-target-rec .stack-lines") },
-    { cls: ["tw-cursor-on", "tw-press", "tw-press-rec"], caption: SWITCH, hold: 180 },
-    { cls: ["tw-cursor-on", "tw-reloading", "tw-switched"], caption: "Both windows switch together", hold: 350 },
-    { cls: ["tw-cursor-on", "tw-switched"], hold: 1900 },
-    { cls: ["tw-cursor-on", "tw-switched"], caption: SEEK, hold: 1000, enter: () => pointAt(".tw-ts") },
-    { cls: ["tw-cursor-on", "tw-switched", "tw-press", "tw-press-ts"], caption: SEEK, hold: 180 },
-    { cls: ["tw-cursor-on", "tw-switched", "tw-seeked"], caption: "The video jumps to that moment", hold: 2000 },
-    { cls: ["tw-switched", "tw-seeked"], hold: 900, enter: park },
-  ];
+  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+    twDemo.classList.add("tw-two");
+    if (caption) caption.textContent = TWO;
+  } else if ("IntersectionObserver" in window) {
+    const ON = ["tw-two"];
+    const STEPS = [
+      { cls: [], caption: ONE, hold: 2200, enter: park },
+      { cls: ["tw-cursor-on"], caption: TOGGLE, hold: 1000, enter: () => pointAt(".tw-ext-icon", 0.5) },
+      { cls: ["tw-cursor-on", "tw-press"], caption: TOGGLE, hold: 160 },
+      { cls: ["tw-cursor-on", "tw-panel-open"], caption: TOGGLE, hold: 800, enter: () => pointAt(".tw-switch", 0.5) },
+      { cls: ["tw-cursor-on", "tw-panel-open", "tw-press"], caption: TOGGLE, hold: 160 },
+      { cls: ["tw-cursor-on", "tw-panel-open", "tw-toggled"], caption: TOGGLE, hold: 600 },
+      { cls: ON, caption: TWO, hold: 2600, enter: park },
+      { cls: [...ON, "tw-cursor-on"], caption: SWITCH, hold: 1000, enter: () => pointAt(".tw-list-a .tw-target-rec .stack-lines") },
+      { cls: [...ON, "tw-cursor-on", "tw-press", "tw-press-rec"], caption: SWITCH, hold: 180 },
+      { cls: [...ON, "tw-cursor-on", "tw-reloading", "tw-switched"], caption: "Both windows switch together", hold: 350 },
+      { cls: [...ON, "tw-cursor-on", "tw-switched"], hold: 1900 },
+      { cls: [...ON, "tw-cursor-on", "tw-switched"], caption: SEEK, hold: 1000, enter: () => pointAt(".tw-ts") },
+      { cls: [...ON, "tw-cursor-on", "tw-switched", "tw-press", "tw-press-ts"], caption: SEEK, hold: 180 },
+      { cls: [...ON, "tw-cursor-on", "tw-switched", "tw-seeked"], caption: "The video jumps to that moment", hold: 2000 },
+      { cls: [...ON, "tw-switched", "tw-seeked"], hold: 1000, enter: park },
+    ];
 
-  let twTimer = null;
-  let twIndex = 0;
+    let twTimer = null;
+    let twIndex = 0;
 
-  function twStep(i) {
-    const step = STEPS[i];
-    twDemo.classList.remove(...STATES);
-    twDemo.classList.add(...step.cls);
-    swapCaption(step.caption);
-    if (step.enter) step.enter();
-    twTimer = setTimeout(() => {
-      twIndex = (twIndex + 1) % STEPS.length;
-      twStep(twIndex);
-    }, step.hold);
+    function twStep(i) {
+      const step = STEPS[i];
+      twDemo.classList.remove(...STATES);
+      twDemo.classList.add(...step.cls);
+      swapCaption(step.caption);
+      if (step.enter) step.enter();
+      twTimer = setTimeout(() => {
+        twIndex = (twIndex + 1) % STEPS.length;
+        twStep(twIndex);
+      }, step.hold);
+    }
+
+    new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting && twTimer === null) {
+            twTimer = setTimeout(() => twStep(0), 600);
+          } else if (!entry.isIntersecting && twTimer !== null) {
+            clearTimeout(twTimer);
+            twTimer = null;
+            twIndex = 0;
+            twDemo.classList.remove(...STATES);
+            park();
+            swapCaption(ONE);
+          }
+        });
+      },
+      { threshold: 0.4 }
+    ).observe(twDemo);
   }
-
-  new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (entry.isIntersecting && twTimer === null) {
-          twTimer = setTimeout(() => twStep(0), 600);
-        } else if (!entry.isIntersecting && twTimer !== null) {
-          clearTimeout(twTimer);
-          twTimer = null;
-          twIndex = 0;
-          twDemo.classList.remove(...STATES);
-          park();
-          swapCaption(START);
-        }
-      });
-    },
-    { threshold: 0.4 }
-  ).observe(twDemo);
 }
