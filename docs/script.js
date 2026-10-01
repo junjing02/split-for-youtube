@@ -29,30 +29,6 @@ if (navigator.clipboard && window.isSecureContext) {
   });
 }
 
-// Scroll reveal: blocks fade up as they enter the viewport. The hidden
-// starting state (.reveal) is added here, by script, so with JS off
-// everything is simply visible.
-const revealTargets = document.querySelectorAll(".section-head, .feature, .install-body, .cta-card");
-if ("IntersectionObserver" in window) {
-  let featureIndex = 0;
-  revealTargets.forEach((el) => {
-    el.classList.add("reveal");
-    // Stagger the three feature cards slightly, left to right.
-    if (el.classList.contains("feature")) el.style.transitionDelay = `${featureIndex++ * 70}ms`;
-  });
-  const revealObserver = new IntersectionObserver(
-    (entries) => {
-      entries.forEach((entry) => {
-        if (!entry.isIntersecting) return;
-        entry.target.classList.add("is-visible");
-        revealObserver.unobserve(entry.target);
-      });
-    },
-    { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
-  );
-  revealTargets.forEach((el) => revealObserver.observe(el));
-}
-
 // Mockup timeline: steps through how the extension actually behaves by
 // swapping state classes on #morphDemo (style.css holds every state's
 // geometry; each step here is just "which classes, which caption, how
