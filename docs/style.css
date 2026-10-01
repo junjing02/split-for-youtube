@@ -1910,6 +1910,100 @@ img {
   color: var(--text);
 }
 
+/* FAQ: heading on the left, questions on the right (like Install), each
+   a native <details> separated by hairline rules. No script and no
+   animation; a plus turns into a minus when open. */
+.faq-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 6fr);
+  gap: 72px;
+  align-items: start;
+}
+
+.faq-list {
+  border-top: 1px solid var(--line);
+}
+
+.faq-item {
+  border-bottom: 1px solid var(--line);
+}
+
+.faq-item summary {
+  position: relative;
+  padding: 20px 40px 20px 0;
+  font-size: 17px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  list-style: none;
+  cursor: pointer;
+}
+
+.faq-item summary::-webkit-details-marker {
+  display: none;
+}
+
+/* Plus / minus, drawn with two bars. */
+.faq-item summary::before,
+.faq-item summary::after {
+  content: "";
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  width: 12px;
+  height: 1.5px;
+  background: var(--text-dim);
+  transition: transform 0.2s ease;
+}
+
+.faq-item summary::after {
+  transform: rotate(90deg);
+}
+
+.faq-item[open] summary::after {
+  transform: rotate(0deg);
+}
+
+.faq-item summary:hover::before,
+.faq-item summary:hover::after {
+  background: var(--text);
+}
+
+.faq-item p {
+  margin: -4px 40px 22px 0;
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.65;
+}
+
+.faq-item a {
+  color: var(--text);
+  text-underline-offset: 3px;
+}
+
+.faq-item code,
+.faq-item kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-raised);
+}
+
+@media (max-width: 860px) {
+  .faq-grid {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .faq-item summary::before,
+  .faq-item summary::after {
+    transition: none;
+  }
+}
+
 /* Reading pages (privacy policy). */
 .prose {
   max-width: 720px;
