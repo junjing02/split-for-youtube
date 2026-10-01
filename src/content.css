@@ -686,6 +686,22 @@ html.yt-split-active #below #above-the-fold #title * {
    display/flex-direction on #subscribe-button: that was tried once and
    made the button disappear entirely. */
 
+/* Even excluded from the wildcard, the subscribed state still showed as
+   two pills stacked vertically ("Subscribed" above the bell + arrow):
+   the #subscribe-button WRAPPER is still under the wildcard, so in a
+   narrow description pane it shrank below the two pills' combined
+   width and they wrapped. Keep the wrapper and the button from shrinking
+   below their content, and keep their children on one line. Sizing and
+   wrapping only; display/flex-direction are left alone. */
+html.yt-split-active #below #subscribe-button,
+html.yt-split-active #below ytd-subscribe-button-renderer,
+html.yt-split-active #below yt-subscribe-button-view-model {
+  flex-shrink: 0 !important;
+  flex-wrap: nowrap !important;
+  white-space: nowrap !important;
+  min-width: max-content !important;
+}
+
 /* Like button icon: no rule here on purpose. Its size/position bug was
    caused by the #below * wildcard above (see its :not() exclusion), not
    by anything missing here. Three earlier attempts to force a size on it
