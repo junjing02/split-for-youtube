@@ -1,5 +1,58 @@
 document.getElementById("year").textContent = new Date().getFullYear();
 
+// Nav: show its bottom border only once the page has scrolled.
+const nav = document.querySelector(".nav");
+if (nav) {
+  const updateNav = () => nav.classList.toggle("is-scrolled", window.scrollY > 8);
+  updateNav();
+  window.addEventListener("scroll", updateNav, { passive: true });
+}
+
+// Copy buttons (chrome://extensions can't be opened from a link). Hidden
+// in the HTML and only revealed where the Clipboard API is available.
+if (navigator.clipboard && window.isSecureContext) {
+  document.querySelectorAll(".copy-btn").forEach((btn) => {
+    btn.hidden = false;
+    btn.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(btn.dataset.copy);
+        btn.textContent = "Copied";
+        btn.classList.add("is-copied");
+        setTimeout(() => {
+          btn.textContent = "Copy";
+          btn.classList.remove("is-copied");
+        }, 1600);
+      } catch (e) {
+        // Clipboard blocked; the URL is still right there to copy by hand.
+      }
+    });
+  });
+}
+
+// Scroll reveal: blocks fade up as they enter the viewport. The hidden
+// starting state (.reveal) is added here, by script, so with JS off
+// everything is simply visible.
+const revealTargets = document.querySelectorAll(".section-head, .feature, .install-body, .cta-card");
+if ("IntersectionObserver" in window) {
+  let featureIndex = 0;
+  revealTargets.forEach((el) => {
+    el.classList.add("reveal");
+    // Stagger the three feature cards slightly, left to right.
+    if (el.classList.contains("feature")) el.style.transitionDelay = `${featureIndex++ * 70}ms`;
+  });
+  const revealObserver = new IntersectionObserver(
+    (entries) => {
+      entries.forEach((entry) => {
+        if (!entry.isIntersecting) return;
+        entry.target.classList.add("is-visible");
+        revealObserver.unobserve(entry.target);
+      });
+    },
+    { threshold: 0.15, rootMargin: "0px 0px -40px 0px" }
+  );
+  revealTargets.forEach((el) => revealObserver.observe(el));
+}
+
 // Mockup timeline: steps through how the extension actually behaves by
 // swapping state classes on #morphDemo (style.css holds every state's
 // geometry; each step here is just "which classes, which caption, how

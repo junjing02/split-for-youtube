@@ -22,6 +22,13 @@
   --mock-pane: rgba(244, 244, 246, 0.72);
   --ease: cubic-bezier(0.65, 0, 0.35, 1);
   --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.18);
+  /* Layered window shadow: hairline ring, contact, mid and long ambient. */
+  --shadow-window: 0 0 0 1px rgba(0, 0, 0, 0.04), 0 2px 4px rgba(0, 0, 0, 0.04),
+    0 12px 24px -8px rgba(0, 0, 0, 0.08), 0 48px 96px -32px rgba(0, 0, 0, 0.22);
+  --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  --hero-glow: rgba(79, 70, 229, 0.1);
+  --grid: rgba(0, 0, 0, 0.045);
+  --spill: 0.22; /* mockup glow spilling onto the page, after the split */
   --font: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
@@ -42,6 +49,12 @@
     --mock-bg: #0f0f0f;
     --mock-pane: rgba(27, 27, 29, 0.6);
     --shadow: 0 24px 48px -24px rgba(0, 0, 0, 0.7);
+    --shadow-window: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 2px 4px rgba(0, 0, 0, 0.3),
+      0 12px 24px -8px rgba(0, 0, 0, 0.4), 0 48px 96px -32px rgba(0, 0, 0, 0.8);
+    --card-highlight: inset 0 1px 0 rgba(255, 255, 255, 0.05);
+    --hero-glow: rgba(99, 102, 241, 0.16);
+    --grid: rgba(255, 255, 255, 0.05);
+    --spill: 0.4;
   }
 }
 
@@ -54,14 +67,46 @@ html {
 }
 
 body {
+  position: relative;
   margin: 0;
   background: var(--bg);
   color: var(--text);
   font-family: var(--font);
+  font-optical-sizing: auto;
   font-size: 15px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+/* Page backdrop behind the hero: a soft accent wash from the top plus a
+   faint grid, both fading out within the first screen so the rest of the
+   page stays plain. Purely decorative, behind everything. */
+body::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 960px;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(60% 55% at 50% 0%, var(--hero-glow), transparent 70%),
+    linear-gradient(var(--grid) 1px, transparent 1px) 0 0 / 56px 56px,
+    linear-gradient(90deg, var(--grid) 1px, transparent 1px) 0 0 / 56px 56px;
+  -webkit-mask-image: radial-gradient(70% 60% at 50% 0%, #000 30%, transparent 80%);
+  mask-image: radial-gradient(70% 60% at 50% 0%, #000 30%, transparent 80%);
+}
+
+h1,
+h2,
+h3 {
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
 }
 
 a {
@@ -93,7 +138,14 @@ img {
   background: var(--nav-bg);
   -webkit-backdrop-filter: saturate(180%) blur(12px);
   backdrop-filter: saturate(180%) blur(12px);
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid transparent;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Border appears once the page is scrolled (script.js); at the top the
+   nav sits flush on the hero backdrop. */
+.nav.is-scrolled {
+  border-bottom-color: var(--border);
 }
 
 .nav-inner {
@@ -160,32 +212,53 @@ img {
   margin: 0 auto;
 }
 
+/* Announcement pill: links to the features section. */
 .eyebrow {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  margin: 0 0 24px;
-  padding: 5px 12px;
+  margin: 0 0 28px;
+  padding: 4px 12px 4px 4px;
   border: 1px solid var(--border);
   border-radius: 999px;
+  background: var(--bg);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   font-size: 13px;
   font-weight: 500;
   color: var(--text-dim);
+  text-decoration: none;
+  transition: border-color 0.15s ease, color 0.15s ease;
 }
 
-.eyebrow::before {
-  content: "";
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--accent);
+.eyebrow:hover {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.eyebrow-tag {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--accent-soft);
+  color: var(--accent-light);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.eyebrow svg {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.15s ease;
+}
+
+.eyebrow:hover svg {
+  transform: translateX(2px);
 }
 
 .hero h1 {
   font-weight: 700;
-  font-size: clamp(36px, 6vw, 60px);
-  line-height: 1.05;
-  letter-spacing: -0.035em;
+  font-size: clamp(38px, 6.4vw, 64px);
+  line-height: 1.04;
+  letter-spacing: -0.04em;
   margin: 0 0 20px;
 }
 
@@ -226,23 +299,32 @@ img {
   height: 16px;
 }
 
+/* Primary: a slight top-lit gradient and inner highlight for a tactile,
+   pressable feel; secondary: quiet, with a hairline shadow. */
 .btn-primary {
-  background: var(--accent);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 86%, #ffffff), var(--accent));
   color: #ffffff;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.2), 0 1px 2px rgba(0, 0, 0, 0.16),
+    0 8px 20px -8px rgba(79, 70, 229, 0.55);
 }
 
 .btn-primary:hover {
-  background: var(--accent-hover);
+  background: linear-gradient(180deg, color-mix(in srgb, var(--accent-hover) 86%, #ffffff), var(--accent-hover));
 }
 
 .btn-secondary {
   background: var(--bg);
   color: var(--text);
   border: 1px solid var(--line);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
 }
 
 .btn-secondary:hover {
   background: var(--bg-raised);
+}
+
+.btn:active {
+  transform: translateY(1px);
 }
 
 .hero-meta {
@@ -266,9 +348,36 @@ img {
    if the window's aspect ratio or the bar height changes. */
 
 .morph-demo {
+  position: relative;
+  isolation: isolate;
   width: 100%;
   max-width: 1032px;
   margin: 0 auto;
+}
+
+/* The mock video's ambient light spilling softly onto the page around
+   the window once the layout splits, a faint hint of it before. Behind
+   the window (z-index -1 inside .morph-demo's own stacking context). */
+.morph-demo::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  top: 12%;
+  left: 2%;
+  right: 2%;
+  bottom: -2%;
+  pointer-events: none;
+  border-radius: 40px;
+  background: radial-gradient(50% 60% at 32% 50%, rgba(129, 140, 248, 0.9), transparent 70%),
+    radial-gradient(45% 55% at 55% 75%, rgba(236, 72, 153, 0.7), transparent 70%),
+    radial-gradient(50% 60% at 80% 40%, rgba(99, 102, 241, 0.5), transparent 70%);
+  filter: blur(60px);
+  opacity: 0.08;
+  transition: opacity 1s ease;
+}
+
+.morph-demo.is-after::before {
+  opacity: var(--spill);
 }
 
 .morph-label {
@@ -302,7 +411,7 @@ img {
   border: 1px solid var(--border);
   border-radius: 14px;
   overflow: hidden;
-  box-shadow: var(--shadow);
+  box-shadow: var(--shadow-window);
   display: flex;
   flex-direction: column;
 }
@@ -1152,17 +1261,25 @@ img {
   }
 }
 
+/* Top-lit card: faint vertical gradient plus a 1px inner highlight. */
 .feature {
   padding: 28px;
   border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--bg-raised);
+  border-radius: 16px;
+  background: linear-gradient(180deg, var(--bg-raised), var(--bg));
+  box-shadow: var(--card-highlight), 0 1px 2px rgba(0, 0, 0, 0.04);
+  transition: border-color 0.2s ease;
+}
+
+.feature:hover {
+  border-color: var(--line);
 }
 
 .feature-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  border: 1px solid color-mix(in srgb, var(--accent) 22%, transparent);
   background: var(--accent-soft);
   color: var(--accent-light);
   display: flex;
@@ -1266,6 +1383,95 @@ img {
   background: var(--bg-raised);
   color: var(--text-dim);
   font-size: 14px;
+}
+
+/* One-click copy for chrome://extensions (browsers won't open that URL
+   from a link). Hidden in the HTML; script.js reveals it only where the
+   Clipboard API works. */
+.copy-btn {
+  margin: 0 4px 0 6px;
+  padding: 1px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1.6;
+  vertical-align: 1px;
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+.copy-btn:hover {
+  border-color: var(--line);
+  color: var(--text);
+}
+
+.copy-btn.is-copied {
+  color: var(--accent-light);
+}
+
+/* Closing call to action. */
+.cta-section {
+  padding-bottom: 96px;
+}
+
+.cta-card {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: 64px 32px;
+  border: 1px solid var(--border);
+  border-radius: 24px;
+  background: var(--bg-raised);
+  box-shadow: var(--card-highlight);
+  text-align: center;
+}
+
+/* Soft accent light from above, same family as the hero backdrop. */
+.cta-card::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(60% 80% at 50% 0%, var(--hero-glow), transparent 70%);
+}
+
+.cta-card h2 {
+  margin: 0 0 10px;
+  font-weight: 700;
+  font-size: clamp(26px, 3.6vw, 36px);
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+}
+
+.cta-card p {
+  margin: 0 auto 28px;
+  max-width: 440px;
+  color: var(--text-dim);
+  font-size: 16px;
+}
+
+/* Scroll reveal: script.js adds .reveal (so without JS everything is just
+   visible) and .is-visible once each block scrolls into view. */
+.reveal {
+  opacity: 0;
+  transform: translateY(14px);
+  transition: opacity 0.6s ease, transform 0.6s var(--ease);
+}
+
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .reveal {
+    transform: none;
+    transition: opacity 0.3s ease;
+  }
 }
 
 /* Footer */
@@ -1603,8 +1809,14 @@ img {
     flex-direction: column;
     text-align: center;
   }
+
+  .cta-card {
+    padding: 48px 20px;
+    border-radius: 18px;
+  }
+
+  .cta-section {
+    padding-bottom: 64px;
+  }
 }
 
-.install-cta {
-  margin-top: 32px;
-}
