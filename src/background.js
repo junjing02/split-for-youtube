@@ -161,7 +161,14 @@ async function handle(msg, sender) {
       if (!isWatchUrl(msg.url) || !isYouTubeUrl(msg.url)) return { role: "none" };
       return claimMain(tab, msg.url, msg.screen);
     case "navigateMain":
-      if (fromCompanion && isYouTubeUrl(msg.url)) await chrome.tabs.update(pair.mainTabId, { url: msg.url });
+      if (!fromCompanion || !isYouTubeUrl(msg.url)) return null;
+      // This is a full page load in the main tab, which would reset the
+      // player to 1x; let the main tab save its speed first so it can put
+      // it back on the new video (content.js "Playback speed handoff").
+      if (isWatchUrl(msg.url)) {
+        await chrome.tabs.sendMessage(pair.mainTabId, { type: "savePlaybackRate" }).catch(() => {});
+      }
+      await chrome.tabs.update(pair.mainTabId, { url: msg.url });
       return null;
     case "seek":
       if (fromCompanion && Number.isFinite(msg.seconds) && msg.seconds >= 0) {

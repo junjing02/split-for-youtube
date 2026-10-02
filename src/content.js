@@ -1599,10 +1599,61 @@
   // rather than ensureLayout() (which runs on every DOM mutation and
   // would risk rebinding many times against the same element — the
   // dataset flag guards that too, belt and suspenders).
+  // ---- Playback speed handoff (two-window mode) ----
+  // Clicking a video in the two-window pop-up loads it in the main tab with
+  // a full page load (background "navigateMain"), and a fresh YouTube page
+  // starts at 1x, so a chosen speed (e.g. 1.5x) was lost on every switch
+  // (reported). YouTube only keeps the speed across its own in-page
+  // navigation. Just before that load, the background asks this tab to
+  // save its speed in sessionStorage (per tab, survives the reload, gone
+  // when the tab closes); the next video then applies it once it starts,
+  // through YouTube's own player API via src/page.js, so the speed menu
+  // agrees. Only set by that handoff, so a manual reload keeps YouTube's
+  // normal behavior.
+  const RATE_KEY = "ytSplitRestorePlaybackRate";
+
+  function savePlaybackRate() {
+    const video = document.querySelector("#primary video, #movie_player video");
+    if (!video || video.playbackRate === 1) return;
+    try {
+      sessionStorage.setItem(RATE_KEY, String(video.playbackRate));
+    } catch (e) {
+      // storage unavailable; the new video just starts at YouTube's default
+    }
+  }
+
+  function restorePlaybackRate(video) {
+    let rate = null;
+    try {
+      rate = Number(sessionStorage.getItem(RATE_KEY));
+      sessionStorage.removeItem(RATE_KEY);
+    } catch (e) {
+      return;
+    }
+    if (!Number.isFinite(rate) || rate <= 0 || rate === 1) return;
+    const apply = () => {
+      document.dispatchEvent(new CustomEvent("ytsplit:set-playback-rate", { detail: String(rate) }));
+      // Fallback if the page-world helper isn't there: set the element.
+      if (video.playbackRate !== rate) video.playbackRate = rate;
+    };
+    // YouTube sets up its player around the first play; apply then, and
+    // once more shortly after in case its own initialization resets it.
+    video.addEventListener(
+      "playing",
+      () => {
+        apply();
+        setTimeout(apply, 800);
+      },
+      { once: true }
+    );
+    if (!video.paused) apply();
+  }
+
   function setupVideoEndedHandling() {
     const video = document.querySelector("#primary video");
     if (!video || video.dataset.ytSplitEndedBound === "1") return;
     video.dataset.ytSplitEndedBound = "1";
+    restorePlaybackRate(video);
     video.addEventListener("ended", enterRecsFocusMode);
     video.addEventListener("play", exitRecsFocusMode);
     // If our early sizing calls ran before the video's own intrinsic
@@ -2065,10 +2116,14 @@
   );
 
   try {
-    chrome.runtime.onMessage.addListener((msg) => {
+    chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
       if (!msg) return;
       if (msg.type === "role") setRole(msg.role);
       else if (msg.type === "seek" && windowRole === "main") seekMainVideo(msg.seconds);
+      else if (msg.type === "savePlaybackRate") {
+        savePlaybackRate();
+        sendResponse(true);
+      }
     });
     chrome.storage.onChanged.addListener((changes, area) => {
       if (area !== "local" || !changes.twoWindowMode) return;
