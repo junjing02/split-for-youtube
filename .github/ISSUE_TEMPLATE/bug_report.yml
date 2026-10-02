@@ -1,0 +1,44 @@
+name: Bug report
+description: Something isn't working the way it should.
+labels: ["bug"]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you see, and what did you expect instead? Screenshots help a lot.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open a video
+        2. Drag the divider
+        3. ...
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and version
+      placeholder: e.g. Chrome 141, Edge 141, Brave 1.84
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Extension version
+      description: Shown on the extension's card in chrome://extensions.
+      placeholder: e.g. 1.2.1
+  - type: checkboxes
+    id: context
+    attributes:
+      label: Where does it happen?
+      options:
+        - label: Normal split layout
+        - label: Two windows
+        - label: Ambient light
+        - label: Live stream
+        - label: YouTube light theme
