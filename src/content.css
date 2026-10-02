@@ -213,6 +213,20 @@ html.yt-split-ambient-on #yt-split-ambient-grain {
   opacity: var(--split-ambient-grain);
 }
 
+/* Fullscreen: YouTube makes its whole app the fullscreen element and lays
+   the player out full-bleed OUTSIDE #columns, so these fixed layers (still
+   inside the fullscreen subtree, painting in #columns' isolated layer)
+   ended up on top of the video, washing it out (reported). There's nothing
+   to glow around when the video fills the screen, so hide them; content.js
+   also skips drawing while fullscreen. Matched both ways: the standard
+   :fullscreen state and YouTube's own [fullscreen] attribute. */
+html:has(:fullscreen) #yt-split-ambient,
+html:has(:fullscreen) #yt-split-ambient-grain,
+html:has(ytd-watch-flexy[fullscreen]) #yt-split-ambient,
+html:has(ytd-watch-flexy[fullscreen]) #yt-split-ambient-grain {
+  display: none !important;
+}
+
 @media (prefers-reduced-motion: reduce) {
   #yt-split-ambient,
   #yt-split-ambient-grain {

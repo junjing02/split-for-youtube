@@ -976,6 +976,12 @@
       const mode = readYouTubeAmbientMode();
       setAmbientOn(mode.on, mode.source);
     }
+    // Fullscreen: the glow is hidden (content.css), so don't spend frames
+    // drawing it; start clean (no blending from a stale frame) on exit.
+    if (document.fullscreenElement) {
+      ambient.fresh = true;
+      return;
+    }
     if (!ambient.on || now - ambient.lastDraw < AMBIENT_FRAME_MS - 2) return;
 
     const video = document.querySelector("#primary video");
