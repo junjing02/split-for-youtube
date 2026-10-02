@@ -73,6 +73,19 @@ function isWatchUrl(url) {
   }
 }
 
+// Messages only ever come from this extension's own content scripts (no
+// externally_connectable), but URLs are still checked before a tab is
+// pointed at them: defense in depth, so nothing but YouTube can ever be
+// opened through this worker.
+function isYouTubeUrl(url) {
+  try {
+    const u = new URL(url);
+    return u.protocol === "https:" && u.hostname === "www.youtube.com";
+  } catch (e) {
+    return false;
+  }
+}
+
 function notify(tabId, msg) {
   chrome.tabs.sendMessage(tabId, msg).catch(() => {});
 }
@@ -145,12 +158,15 @@ async function handle(msg, sender) {
         role: fromCompanion ? "companion" : pair && tab.id === pair.mainTabId ? "main" : "none",
       };
     case "claimMain":
+      if (!isWatchUrl(msg.url) || !isYouTubeUrl(msg.url)) return { role: "none" };
       return claimMain(tab, msg.url, msg.screen);
     case "navigateMain":
-      if (fromCompanion) await chrome.tabs.update(pair.mainTabId, { url: msg.url });
+      if (fromCompanion && isYouTubeUrl(msg.url)) await chrome.tabs.update(pair.mainTabId, { url: msg.url });
       return null;
     case "seek":
-      if (fromCompanion) notify(pair.mainTabId, { type: "seek", seconds: msg.seconds });
+      if (fromCompanion && Number.isFinite(msg.seconds) && msg.seconds >= 0) {
+        notify(pair.mainTabId, { type: "seek", seconds: msg.seconds });
+      }
       return null;
     default:
       return null;
