@@ -1004,7 +1004,11 @@
   const AMBIENT_SAMPLE_H = 36;
   const AMBIENT_CANVAS_SCALE = 1 / 8; // canvas px per CSS px
   const AMBIENT_CANVAS_BLUR = 7; // in canvas px (~56 CSS px)
-  const AMBIENT_LIGHT_LIFT = "rgb(190, 190, 190)"; // light theme: how far the sample is lifted toward white
+  // Light theme (see tintSampleForLightTheme): overall tint strength, and
+  // how much the video's colors are saturated before tinting.
+  const AMBIENT_LIGHT_AMOUNT = 0.95;
+  const AMBIENT_LIGHT_SATURATION = 1.7;
+  const AMBIENT_LIGHT_LIFT = "rgb(120, 120, 120)"; // fallback only: screen-blend lift toward white
   const AMBIENT_LEVELS = 12;
   const AMBIENT_BLEND = 0.5; // weight of each new frame over the previous
   const AMBIENT_FRAME_MS = 1000 / 30;
@@ -1176,6 +1180,55 @@
     drawAmbient(video, rect);
   }
 
+  // Light theme: a glow is light, and you can't add light to a white page,
+  // so the sample is turned into colored tints over white instead. Per
+  // pixel: keep the hue at full brightness with boosted saturation, then
+  // mix it over white by how bright the pixel was. Bright, colorful areas
+  // tint the page strongly; dark or gray areas come out white, i.e.
+  // invisible on the page, instead of smearing gray over it. (A first
+  // version just screen-blended gray over the sample: that washed every
+  // ordinary video out to near-white, reported as "doesn't glow".) The
+  // sample is 64x36, so this is ~2,300 pixels per frame. It runs on its
+  // own canvas (willReadFrequently) so the dark-theme path stays on the
+  // GPU. If the pixels can't be read, falls back to the screen blend.
+  function tintSampleForLightTheme(a) {
+    if (!a.lightFailed) {
+      try {
+        if (!a.lctx) {
+          const c = document.createElement("canvas");
+          c.width = AMBIENT_SAMPLE_W;
+          c.height = AMBIENT_SAMPLE_H;
+          a.lctx = c.getContext("2d", { willReadFrequently: true });
+        }
+        a.lctx.drawImage(a.sample, 0, 0);
+        const image = a.lctx.getImageData(0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
+        const d = image.data;
+        for (let i = 0; i < d.length; i += 4) {
+          const max = Math.max(d[i], d[i + 1], d[i + 2]);
+          if (max === 0) {
+            d[i] = d[i + 1] = d[i + 2] = 255;
+            continue;
+          }
+          const amount = Math.min(1, Math.sqrt(max / 255)) * AMBIENT_LIGHT_AMOUNT;
+          for (let c = 0; c < 3; c++) {
+            // 0 for the brightest channel, up to 1 for a fully absent one
+            const lack = Math.min(1, (1 - d[i + c] / max) * AMBIENT_LIGHT_SATURATION);
+            d[i + c] = 255 - amount * lack * 255;
+          }
+        }
+        a.lctx.putImageData(image, 0, 0);
+        a.sctx.drawImage(a.lctx.canvas, 0, 0);
+        return;
+      } catch (e) {
+        a.lightFailed = true;
+      }
+    }
+    a.sctx.globalCompositeOperation = "screen";
+    a.sctx.fillStyle = AMBIENT_LIGHT_LIFT;
+    a.sctx.fillRect(0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
+    a.sctx.globalCompositeOperation = "source-over";
+  }
+
   function drawAmbient(video, rect) {
     const a = ambient;
     const box = a.root.getBoundingClientRect();
@@ -1187,18 +1240,14 @@
       a.fresh = true;
     }
 
+    const light = !document.documentElement.hasAttribute("dark");
+    if (light !== a.light) {
+      a.light = light;
+      a.fresh = true; // don't blend a dark-theme frame into a light one
+    }
     try {
       a.sctx.drawImage(video, 0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
-      // Light theme: lift the sample toward white (screen blend), so dark
-      // scenes fade into the white page instead of smearing gray over it,
-      // and colors come out as pastels. content.css raises the saturation
-      // to compensate.
-      if (!document.documentElement.hasAttribute("dark")) {
-        a.sctx.globalCompositeOperation = "screen";
-        a.sctx.fillStyle = AMBIENT_LIGHT_LIFT;
-        a.sctx.fillRect(0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
-        a.sctx.globalCompositeOperation = "source-over";
-      }
+      if (light) tintSampleForLightTheme(a);
     } catch (e) {
       return; // frame not drawable right now (e.g. mid source switch)
     }

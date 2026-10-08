@@ -62,12 +62,11 @@ html.yt-split-active:not([dark]) {
   --split-text: #0f0f0f;
   --split-pane-bg: rgba(242, 242, 242, 0.6);
   /* Ambient light in light theme (an addition over YouTube, which has no
-     Ambient mode here): content.js lifts the sampled colors toward white,
-     so the glow is a pastel wash on the white page. More saturation to
-     make up for that lift, a little less strength, and much less grain
-     (it reads as dirt on white). */
-  --split-ambient-saturate: 1.9;
-  --split-ambient-scale: 0.75;
+     Ambient mode here): content.js turns the sampled colors into tints
+     over white (tintSampleForLightTheme), which does the color work
+     itself, so no extra saturation here. Much less grain (it reads as
+     dirt on white). */
+  --split-ambient-saturate: 1;
   --split-ambient-grain: 0.1;
 }
 

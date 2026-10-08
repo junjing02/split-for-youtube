@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Split for YouTube",
-  "version": "1.3.4",
+  "version": "1.3.5",
   "description": "Video on the left; description, recommendations, and comments stacked and resizable on the right, for videos and live streams.",
   "icons": {
     "16": "icons/icon16.png",
