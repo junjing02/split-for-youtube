@@ -1969,6 +1969,14 @@ img {
   transform: translate(-50%, -50%);
 }
 
+.pm-slider-value {
+  flex: 0 0 auto;
+  width: 36px;
+  text-align: right;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
 .pm-footer {
   display: flex;
   justify-content: space-between;

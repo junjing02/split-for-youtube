@@ -12,10 +12,12 @@ const DEFAULTS = {
 
 const controls = Object.fromEntries(Object.keys(DEFAULTS).map((key) => [key, document.getElementById(key)]));
 const options = document.getElementById("options");
+const strengthValue = document.getElementById("ambientStrengthValue");
 
 // With the master switch off nothing else applies; with ambient light off
 // the strength slider doesn't either.
 function reflect() {
+  strengthValue.textContent = controls.ambientStrength.value + "%";
   const on = controls.splitEnabled.checked;
   options.classList.toggle("is-disabled", !on);
   for (const [key, el] of Object.entries(controls)) {

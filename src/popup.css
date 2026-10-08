@@ -164,6 +164,16 @@ input[type="range"]:disabled {
   opacity: 0.5;
 }
 
+/* Current glow strength; fixed width so the slider doesn't shift as the
+   number changes. */
+output {
+  flex: 0 0 auto;
+  width: 36px;
+  text-align: right;
+  color: var(--text-dim);
+  font-variant-numeric: tabular-nums;
+}
+
 footer {
   display: flex;
   align-items: center;
