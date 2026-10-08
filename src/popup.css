@@ -23,7 +23,7 @@
 }
 
 body {
-  width: 300px;
+  width: 320px;
   margin: 0;
   padding: 14px 16px 12px;
   background: var(--bg);
@@ -44,20 +44,44 @@ header img {
 }
 
 h1 {
+  flex: 1;
   margin: 0;
   font-size: 14px;
   font-weight: 600;
+}
+
+.master {
+  display: flex;
+  cursor: pointer;
+}
+
+/* Everything below the header dims when the master switch is off. */
+#options {
+  transition: opacity 0.15s ease;
+}
+
+#options.is-disabled {
+  opacity: 0.4;
+}
+
+#options.is-disabled .row {
+  cursor: default;
 }
 
 .row {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 14px 0 10px;
+  padding: 12px 0;
   cursor: pointer;
 }
 
+.row + .row {
+  border-top: 1px solid var(--border);
+}
+
 .text {
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 3px;
@@ -67,14 +91,13 @@ h1 {
   font-weight: 600;
 }
 
-.desc,
-.hint {
+.desc {
   color: var(--text-dim);
 }
 
 /* The real checkbox stays in the DOM (keyboard, screen readers); the
    switch is drawn by the span after it. */
-.row input {
+input[type="checkbox"] {
   position: absolute;
   opacity: 0;
   pointer-events: none;
@@ -104,21 +127,66 @@ h1 {
   transition: transform 0.15s ease, background-color 0.15s ease;
 }
 
-.row input:checked + .switch {
+input:checked + .switch {
   background: var(--track-on);
 }
 
-.row input:checked + .switch::after {
+input:checked + .switch::after {
   transform: translateX(16px);
   background: var(--knob-on);
 }
 
-.row input:focus-visible + .switch {
+input:focus-visible + .switch {
   outline: 2px solid var(--track-on);
   outline-offset: 2px;
 }
 
-.hint {
-  margin: 0;
+/* Glow strength: belongs to the Ambient light row above it, so no rule
+   between them and a tighter top. */
+.row.slider-row {
+  align-items: center;
+  padding-top: 0;
+  border-top: none;
+}
+
+.slider-row .title {
+  font-weight: 400;
+  color: var(--text-dim);
+}
+
+input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  accent-color: var(--track-on);
+}
+
+input[type="range"]:disabled {
+  opacity: 0.5;
+}
+
+footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
   font-size: 12px;
+}
+
+.links {
+  display: flex;
+  gap: 12px;
+}
+
+footer a {
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+footer a:hover {
+  color: var(--text);
+  text-decoration: underline;
 }

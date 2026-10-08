@@ -8,6 +8,32 @@
   const COMPANION_HINT = new URLSearchParams(location.search).get("ytsplit") === "companion";
   let windowRole = COMPANION_HINT ? "companion" : "none";
   let twoWindowMode = false;
+
+  // Settings from the toolbar panel (src/popup.*), kept in
+  // chrome.storage.local and applied live (see "Settings" near the bottom).
+  //   splitEnabled    master switch: off = YouTube untouched
+  //   ambientEnabled  our ambient light (still follows YouTube's own toggle)
+  //   ambientStrength 0-100, the glow's opacity
+  //   rememberLayout  keep divider positions / collapsed panes across videos
+  //   videoOnRight    swap the two columns
+  const DEFAULT_SETTINGS = {
+    splitEnabled: true,
+    ambientEnabled: true,
+    ambientStrength: 70,
+    rememberLayout: false,
+    videoOnRight: false,
+  };
+  let settings = { ...DEFAULT_SETTINGS };
+  // What "Remember my layout" last saved: { sideRatio, topHeight,
+  // secondaryCollapsed, commentsCollapsed, descExpanded }, or null.
+  let savedLayout = null;
+  // True until storage says otherwise, so the first-run hint can't flash
+  // up before we know whether it was already dismissed.
+  let welcomeSeen = true;
+
+  function isSwapped() {
+    return settings.videoOnRight && windowRole === "none";
+  }
   let startRetryScheduled = false;
   let dragState = null;
   let movedNodes = []; // { node, parent, next } — for safe restore on teardown
@@ -167,15 +193,33 @@
       header.className = "yt-split-pane-header";
       if (options && options.onToggle) {
         header.classList.add("yt-split-collapsible-header");
-        header.addEventListener("click", () => {
+        const toggle = () => {
           const collapsed = !container.classList.contains("yt-split-pane-collapsed");
           container.classList.toggle("yt-split-pane-collapsed", collapsed);
           options.onToggle(collapsed);
+          header.setAttribute("aria-expanded", String(!collapsed));
+        };
+        // Keyboard and screen-reader access: a focusable "button" that
+        // Enter/Space toggle. A mouse click must NOT move focus onto it
+        // (same reason as the description header below: a focused control
+        // would swallow the next spacebar press meant for play/pause).
+        header.setAttribute("role", "button");
+        header.tabIndex = 0;
+        header.addEventListener("mousedown", (e) => e.preventDefault());
+        header.addEventListener("click", toggle);
+        header.addEventListener("keydown", (e) => {
+          if (e.key !== "Enter" && e.key !== " ") return;
+          e.preventDefault();
+          e.stopPropagation();
+          toggle();
         });
       }
       container.insertBefore(header, container.firstChild);
     }
     if (header.textContent !== text) header.textContent = text;
+    if (options && options.onToggle) {
+      header.setAttribute("aria-expanded", String(!container.classList.contains("yt-split-pane-collapsed")));
+    }
 
     // Only ever ADD here — same pattern as the description pane's own
     // expand flag: the click handler is what removes it, so this
@@ -348,11 +392,18 @@
     if (primaryRect.width <= 0 || sideRect.width <= 0) return;
     const player = document.querySelector("#player-container-outer");
     const playerRect = player ? player.getBoundingClientRect() : null;
-    const videoRight =
-      playerRect && playerRect.width > 0 ? Math.max(primaryRect.right, playerRect.right) : primaryRect.right;
+    const hasPlayer = playerRect && playerRect.width > 0;
     const resizer = document.getElementById("yt-split-resizer");
-    const limit = resizer ? resizer.getBoundingClientRect().left : sideRect.left;
-    const overlap = videoRight - limit;
+    const resizerRect = resizer ? resizer.getBoundingClientRect() : null;
+    let overlap;
+    if (isSwapped()) {
+      // Video on the right: its LEFT edge must stay clear of the divider.
+      const videoLeft = hasPlayer ? Math.min(primaryRect.left, playerRect.left) : primaryRect.left;
+      overlap = (resizerRect ? resizerRect.right : sideRect.right) - videoLeft;
+    } else {
+      const videoRight = hasPlayer ? Math.max(primaryRect.right, playerRect.right) : primaryRect.right;
+      overlap = videoRight - (resizerRect ? resizerRect.left : sideRect.left);
+    }
     if (overlap <= 0.5) return; // no overlap (0.5px slack for sub-pixel rounding)
     const current = parseFloat(
       getComputedStyle(document.documentElement).getPropertyValue(SIDE_WIDTH_VAR)
@@ -391,7 +442,10 @@
     // from the width it ACTUALLY was at mousedown starts every drag with
     // zero jump by construction and follows the cursor 1:1 regardless of
     // where within the hit-box it was grabbed.
-    let px = dragState.startWidth + (dragState.startX - e.clientX);
+    // With the video on the right (settings.videoOnRight) the side pane is
+    // on the left, so dragging right widens it instead.
+    const dir = isSwapped() ? -1 : 1;
+    let px = dragState.startWidth + dir * (dragState.startX - e.clientX);
     px = Math.min(clampSideWidth(px, rect, dragState.ratio), dragState.maxSide);
     pendingSideWidth = px;
     if (!sideWidthFrameScheduled) {
@@ -428,6 +482,7 @@
       manualSideWidthRatio = current / columnsWidth;
     }
     hasManualSideWidth = true;
+    saveLayout();
   }
 
   // Bound once, ever — dragState tracks which resizer/columns pair is
@@ -438,6 +493,38 @@
   function setupResizer(resizer, columns) {
     if (resizer.dataset.bound === "1") return;
     resizer.dataset.bound = "1";
+    // Keyboard and screen-reader access. (A mouse press never focuses it:
+    // the mousedown handler below calls preventDefault.)
+    resizer.setAttribute("role", "separator");
+    resizer.setAttribute("aria-orientation", "vertical");
+    resizer.setAttribute("aria-label", "Resize video and side pane");
+    resizer.tabIndex = 0;
+    resizer.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      const sidePane = document.getElementById("yt-split-side-pane");
+      if (!sidePane) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const rect = columns.getBoundingClientRect();
+      // Left arrow moves the divider left: wider side pane when it's on
+      // the right, narrower when the columns are swapped.
+      const grow = (e.key === "ArrowLeft") !== isSwapped();
+      const px = clampSideWidth(sidePane.getBoundingClientRect().width + (grow ? 24 : -24), rect);
+      setSideWidth(px);
+      nudgePlayerResize();
+      enforceMinVideoHeight();
+      preventColumnOverlap();
+      hasManualSideWidth = true;
+      if (rect.width > 0) manualSideWidthRatio = px / rect.width;
+      saveLayout();
+    });
+    // Double-click: back to the automatic default width.
+    resizer.addEventListener("dblclick", () => {
+      hasManualSideWidth = false;
+      applySideWidth();
+      nudgePlayerResize();
+      saveLayout();
+    });
     resizer.addEventListener("mousedown", (e) => {
       // sidePane is queried fresh here rather than passed in — by the time
       // a user can actually click the resizer, ensureLayout() has already
@@ -554,7 +641,8 @@
     lastVDragEndAt = Date.now();
     document.body.classList.remove("yt-split-resizing-v");
     flushTopHeight(); // apply the latest dragged position immediately, don't wait on a pending frame
-    // Deliberately not persisted — see onDocumentMouseUp above.
+    // Only kept across videos when "Remember my layout" is on.
+    saveLayout();
   }
 
   document.addEventListener("mousemove", onDocumentMouseMoveV);
@@ -563,6 +651,25 @@
   function setupVResizer(vresizer, sidePane) {
     if (vresizer.dataset.bound === "1") return;
     vresizer.dataset.bound = "1";
+    vresizer.setAttribute("role", "separator");
+    vresizer.setAttribute("aria-orientation", "horizontal");
+    vresizer.setAttribute("aria-label", "Resize recommendations and comments");
+    vresizer.tabIndex = 0;
+    vresizer.addEventListener("keydown", (e) => {
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
+      const secondary = document.querySelector("#secondary");
+      if (!secondary) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const height = secondary.getBoundingClientRect().height + (e.key === "ArrowDown" ? 24 : -24);
+      setTopHeight(clampTopHeight(height, sidePane.getBoundingClientRect()));
+      saveLayout();
+    });
+    // Double-click: back to the even default.
+    vresizer.addEventListener("dblclick", () => {
+      setTopHeight(null);
+      saveLayout();
+    });
     vresizer.addEventListener("mousedown", (e) => {
       const rect = sidePane.getBoundingClientRect();
       const secondary = document.querySelector("#secondary");
@@ -587,6 +694,9 @@
   function setDescExpanded(pane, expanded) {
     descExpanded = expanded;
     pane.classList.toggle("yt-split-desc-expanded", expanded);
+    const header = pane.querySelector(":scope > .yt-split-desc-header");
+    if (header) header.setAttribute("aria-expanded", String(expanded));
+    saveLayout();
   }
 
   // Builds the collapsed-by-default description section at the top of the
@@ -626,6 +736,7 @@
     }
 
     if (descExpanded) pane.classList.add("yt-split-desc-expanded");
+    header.setAttribute("aria-expanded", String(pane.classList.contains("yt-split-desc-expanded")));
 
     let body = document.getElementById("yt-split-desc-body");
     if (!body) {
@@ -711,10 +822,7 @@
     const parent = el.parentElement;
     if (parent) return parent;
     const root = el.getRootNode();
-    if (root instanceof ShadowRoot) {
-      console.warn("[YouTube Split Layout] spanFullWidth: crossing shadow boundary at", el, "-> host", root.host);
-      return root.host;
-    }
+    if (root instanceof ShadowRoot) return root.host;
     return null;
   }
 
@@ -783,7 +891,7 @@
         const newParentWidth = parent.getBoundingClientRect().width;
         if (newWidth > 0 && newParentWidth > 0 && newWidth < newParentWidth - 1) {
           console.warn(
-            "[YouTube Split Layout] spanFullWidth: overrides applied but element is still narrower than its parent",
+            "[Split for YouTube] spanFullWidth: overrides applied but element is still narrower than its parent",
             el,
             { newWidth, newParentWidth }
           );
@@ -792,7 +900,7 @@
       el = parent;
     }
     if (!anyChecked) {
-      console.warn("[YouTube Split Layout] spanFullWidth: #columns has no ancestors before document.documentElement?", columns);
+      console.warn("[Split for YouTube] spanFullWidth: #columns has no ancestors before document.documentElement?", columns);
     }
   }
 
@@ -922,7 +1030,7 @@
     document.documentElement.classList.toggle(AMBIENT_ON_CLASS, on);
     // Only on an actual change (rare), so a wrong on/off state can be
     // diagnosed from the console instead of guessed at.
-    console.info(`[Split for YouTube] ambient light ${on ? "on" : "off"} (from ${source})`);
+    console.debug(`[Split for YouTube] ambient light ${on ? "on" : "off"} (from ${source})`);
   }
 
   function ensureAmbient(columns) {
@@ -982,7 +1090,7 @@
     if (now - ambient.lastCheck >= AMBIENT_CHECK_MS) {
       ambient.lastCheck = now;
       const mode = readYouTubeAmbientMode();
-      setAmbientOn(mode.on, mode.source);
+      setAmbientOn(settings.ambientEnabled && mode.on, settings.ambientEnabled ? mode.source : "setting off");
     }
     // Fullscreen: the glow is hidden (content.css), so don't spend frames
     // drawing it; start clean (no blending from a stale frame) on exit.
@@ -1065,12 +1173,102 @@
         setTimeout(() => {
           if (!ambient) return;
           const mode = readYouTubeAmbientMode();
-          setAmbientOn(mode.on, mode.source);
+          setAmbientOn(settings.ambientEnabled && mode.on, settings.ambientEnabled ? mode.source : "setting off");
         }, delay);
       }
     },
     true
   );
+
+  // ---- Remembered layout ----
+  // "Remember my layout" (toolbar panel): the divider position (as a
+  // proportion of the layout), the recommendations/comments split and which
+  // panes are collapsed are saved whenever the user changes them, and
+  // start() restores them on the next video instead of the defaults. Off by
+  // default, in which case every video starts fresh (the original design).
+  function currentTopHeightPx() {
+    const raw = document.documentElement.style.getPropertyValue(TOP_HEIGHT_VAR).trim();
+    const px = parseFloat(raw);
+    return raw.endsWith("px") && Number.isFinite(px) ? px : null;
+  }
+
+  function saveLayout() {
+    if (!settings.rememberLayout || windowRole !== "none") return;
+    savedLayout = {
+      sideRatio: hasManualSideWidth ? manualSideWidthRatio : null,
+      topHeight: currentTopHeightPx(),
+      secondaryCollapsed,
+      commentsCollapsed,
+      descExpanded,
+    };
+    try {
+      chrome.storage.local.set({ savedLayout });
+    } catch (e) {
+      // extension reloaded; nothing to save to
+    }
+  }
+
+  // The side pane width to start a video with: the user's own proportion
+  // when there is one (a drag this session, or a remembered layout), else
+  // the automatic default.
+  function applyPreferredSideWidth() {
+    const columns = document.querySelector("#columns");
+    const rect = hasManualSideWidth && columns ? columns.getBoundingClientRect() : null;
+    if (!rect || rect.width <= 0) {
+      applySideWidth();
+      return;
+    }
+    setSideWidth(clampSideWidth(manualSideWidthRatio * rect.width, rect));
+    enforceMinVideoHeight();
+    preventColumnOverlap();
+  }
+
+  // ---- First-run hint ----
+  // A small one-time card the first time the split appears, pointing out
+  // what isn't obvious: the dividers, the collapsible titles, and the
+  // toolbar panel. Dismissed for good with "Got it" (welcomeSeen).
+  const WELCOME_ID = "yt-split-welcome";
+
+  function hideWelcome() {
+    const card = document.getElementById(WELCOME_ID);
+    if (card) card.remove();
+  }
+
+  function maybeShowWelcome() {
+    if (welcomeSeen || windowRole !== "none" || document.getElementById(WELCOME_ID)) return;
+    const card = document.createElement("div");
+    card.id = WELCOME_ID;
+    card.setAttribute("role", "status");
+    const title = document.createElement("div");
+    title.className = "yt-split-welcome-title";
+    title.textContent = "Split for YouTube is on";
+    const list = document.createElement("ul");
+    for (const tip of [
+      "Drag the lines between panes to resize. Double-click one to reset it.",
+      "Click a pane's title to collapse or expand it.",
+      "Two windows and more settings are under the extension's toolbar icon.",
+    ]) {
+      const li = document.createElement("li");
+      li.textContent = tip;
+      list.appendChild(li);
+    }
+    const button = document.createElement("button");
+    button.type = "button";
+    button.textContent = "Got it";
+    // No focus on click, so the next spacebar press still reaches the player.
+    button.addEventListener("mousedown", (e) => e.preventDefault());
+    button.addEventListener("click", () => {
+      welcomeSeen = true;
+      hideWelcome();
+      try {
+        chrome.storage.local.set({ welcomeSeen: true });
+      } catch (e) {
+        // extension reloaded; it will simply show once more
+      }
+    });
+    card.append(title, list, button);
+    document.body.appendChild(card);
+  }
 
   // ---- Wide side pane ----
   // When the side pane is half the layout or wider (a vertical video's
@@ -1167,6 +1365,11 @@
       return;
     }
 
+    if (!settings.splitEnabled) {
+      teardownLayout();
+      return;
+    }
+
     if (isTheaterMode()) {
       // Same self-heal idea — this runs on every retry/mutation pass, so
       // theater mode turning on (however that happens, not just the two
@@ -1190,13 +1393,14 @@
     document.documentElement.classList.add("yt-split-active");
     document.documentElement.classList.toggle("yt-split-solo", windowRole === "main");
     document.documentElement.classList.toggle("yt-split-companion", windowRole === "companion");
+    document.documentElement.classList.toggle("yt-split-swapped", isSwapped());
     if (windowRole === "companion") silenceCompanionVideo();
 
     let resizer = document.getElementById("yt-split-resizer");
     if (!resizer) {
       resizer = document.createElement("div");
       resizer.id = "yt-split-resizer";
-      resizer.title = "Drag to resize";
+      resizer.title = "Drag to resize. Double-click to reset.";
       columns.appendChild(resizer);
     }
     setupResizer(resizer, columns);
@@ -1218,7 +1422,7 @@
 
     ensurePaneHeader(secondary, hasLiveChat(secondary) ? "Live Chat" : "Recommended", {
       collapsed: secondaryCollapsed,
-      onToggle: (c) => { secondaryCollapsed = c; }
+      onToggle: (c) => { secondaryCollapsed = c; saveLayout(); }
     });
     moveNode(secondary, sidePane);
 
@@ -1238,7 +1442,7 @@
     if (!vresizer) {
       vresizer = document.createElement("div");
       vresizer.id = "yt-split-vresizer";
-      vresizer.title = "Drag to resize";
+      vresizer.title = "Drag to resize. Double-click to reset.";
       sidePane.appendChild(vresizer);
     } else if (vresizer.parentElement !== sidePane) {
       sidePane.appendChild(vresizer);
@@ -1253,7 +1457,7 @@
     }
     ensurePaneHeader(commentsPane, "Comments", {
       collapsed: commentsCollapsed,
-      onToggle: (c) => { commentsCollapsed = c; }
+      onToggle: (c) => { commentsCollapsed = c; saveLayout(); }
     });
 
     // Comments are absent while a stream is live (they show up once it
@@ -1284,6 +1488,7 @@
     repairSubscribeButtons();
     observeSidePane(sidePane);
     updateWideSide();
+    maybeShowWelcome();
 
     // Deliberately NOT reclamping side/top width here. This function runs
     // on every MutationObserver-triggered pass — and YouTube's page mutates
@@ -1306,7 +1511,14 @@
   // confused YouTube's own cleanup and broke the next page (e.g. going
   // back to the home page).
   function teardownLayout() {
-    document.documentElement.classList.remove("yt-split-active", "yt-split-solo", "yt-split-companion", WIDE_SIDE_CLASS);
+    document.documentElement.classList.remove(
+      "yt-split-active",
+      "yt-split-solo",
+      "yt-split-companion",
+      "yt-split-swapped",
+      WIDE_SIDE_CLASS
+    );
+    hideWelcome();
     if (sidePaneObserver) sidePaneObserver.disconnect();
     sidePaneObserver = null;
     observedSidePane = null;
@@ -1328,6 +1540,9 @@
     if (secondary) {
       const header = secondary.querySelector(":scope > .yt-split-pane-header");
       if (header) header.remove();
+      // #secondary is YouTube's own element and outlives our layout; don't
+      // leave our collapsed state on it.
+      secondary.classList.remove("yt-split-pane-collapsed");
     }
 
     const sidePane = document.getElementById("yt-split-side-pane");
@@ -1720,7 +1935,7 @@
       "loadedmetadata",
       () => {
         constrainVideoSize();
-        applySideWidth();
+        applyPreferredSideWidth();
       },
       { once: true }
     );
@@ -1776,6 +1991,12 @@
     }
 
     if (!isWatchPage()) return;
+
+    // Master switch (toolbar panel): off means YouTube is left untouched.
+    if (!settings.splitEnabled) {
+      teardownLayout();
+      return;
+    }
 
     // Theater mode and the split are mutually exclusive — see
     // isTheaterMode()'s comment. Tear down and stop here; the click/keydown
@@ -1843,6 +2064,19 @@
     secondaryCollapsed = false;
     commentsCollapsed = false;
 
+    // "Remember my layout" (toolbar panel): start from where the user last
+    // left things instead of the defaults above. Normal split only.
+    if (settings.rememberLayout && savedLayout && windowRole === "none") {
+      if (typeof savedLayout.sideRatio === "number") {
+        hasManualSideWidth = true;
+        manualSideWidthRatio = savedLayout.sideRatio;
+      }
+      if (typeof savedLayout.topHeight === "number") setTopHeight(savedLayout.topHeight);
+      secondaryCollapsed = !!savedLayout.secondaryCollapsed;
+      commentsCollapsed = !!savedLayout.commentsCollapsed;
+      descExpanded = !!savedLayout.descExpanded;
+    }
+
     // Wrapped: an uncaught exception anywhere in this initial pass (a null
     // reference against some not-yet-settled part of the DOM right at SPA
     // navigation time, for instance) would previously abort start()
@@ -1852,10 +2086,11 @@
     try {
       ensureLayout();
       constrainVideoSize();
-      applySideWidth();
+      applyPreferredSideWidth();
+      reclampTopHeight();
       setupVideoEndedHandling();
     } catch (err) {
-      console.error("[YouTube Split Layout] initial layout pass failed, will retry:", err);
+      console.error("[Split for YouTube] initial layout pass failed, will retry:", err);
     }
 
     const root = document.querySelector("ytd-watch-flexy") || document.body;
@@ -1920,7 +2155,7 @@
       if (document.documentElement.classList.contains("yt-split-active")) return;
       if (attempt > MAX_RETRY_ATTEMPTS) {
         console.warn(
-          "[YouTube Split Layout] layout still hasn't activated after ~20s on",
+          "[Split for YouTube] layout still hasn't activated after ~20s on",
           location.href,
           "— giving up until the next navigation."
         );
@@ -1931,10 +2166,11 @@
         try {
           ensureLayout();
           constrainVideoSize();
-          applySideWidth();
+          applyPreferredSideWidth();
+          reclampTopHeight();
           setupVideoEndedHandling();
         } catch (err) {
-          console.error("[YouTube Split Layout] retry layout pass failed:", err);
+          console.error("[Split for YouTube] retry layout pass failed:", err);
         }
         retryUntilActive(attempt + 1);
       }, RETRY_INTERVAL_MS);
@@ -2096,7 +2332,7 @@
   // with the mode on; the background opens the pop-up or points it at this
   // tab's video. Called on every navigation, so the pop-up follows along.
   function maybeClaimMain() {
-    if (!twoWindowMode || windowRole === "companion") return;
+    if (!settings.splitEnabled || !twoWindowMode || windowRole === "companion") return;
     if (!isWatchPage() || document.visibilityState !== "visible") return;
     sendToBackground({
       type: "claimMain",
@@ -2208,6 +2444,53 @@
     });
   }
   hello(0);
+
+  // ---- Settings ----
+  // Loaded once, then kept in sync live: the toolbar panel (and the
+  // keyboard shortcuts, via the background worker) just write to
+  // chrome.storage.local. Only the settings that change the layout's
+  // structure rebuild it; the ambient ones are applied in place so moving
+  // the strength slider doesn't reset a dragged divider.
+  function applyAmbientSettings() {
+    const strength = Math.max(0, Math.min(100, Number(settings.ambientStrength) || 0));
+    document.documentElement.style.setProperty("--split-ambient-opacity", String(strength / 100));
+    if (ambient) ambient.lastCheck = 0; // re-evaluate on/off on the next frame
+  }
+
+  try {
+    chrome.storage.local.get({ ...DEFAULT_SETTINGS, savedLayout: null, welcomeSeen: false }).then((stored) => {
+      for (const key of Object.keys(DEFAULT_SETTINGS)) settings[key] = stored[key];
+      savedLayout = stored.savedLayout;
+      welcomeSeen = !!stored.welcomeSeen;
+      applyAmbientSettings();
+      if (isWatchPage()) start();
+    });
+    chrome.storage.onChanged.addListener((changes, area) => {
+      if (area !== "local") return;
+      let rebuild = false;
+      for (const key of Object.keys(DEFAULT_SETTINGS)) {
+        if (!changes[key]) continue;
+        const value = changes[key].newValue;
+        settings[key] = value === undefined ? DEFAULT_SETTINGS[key] : value;
+        if (key === "splitEnabled" || key === "videoOnRight" || key === "rememberLayout") rebuild = true;
+      }
+      if (changes.rememberLayout && !settings.rememberLayout) {
+        // Turned off: forget what was saved, so turning it back on later
+        // starts from the layout at that moment, not a stale one.
+        savedLayout = null;
+        chrome.storage.local.remove("savedLayout");
+      } else if (changes.rememberLayout) {
+        saveLayout();
+      }
+      if (changes.ambientEnabled || changes.ambientStrength) applyAmbientSettings();
+      if (rebuild) {
+        if (isWatchPage()) start();
+        else teardownLayout();
+      }
+    });
+  } catch (e) {
+    // extension context gone; keep running on the defaults
+  }
 
   onNavigateFinish();
 

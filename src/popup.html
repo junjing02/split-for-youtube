@@ -9,18 +9,63 @@
   <header>
     <img src="../icons/icon48.png" width="22" height="22" alt="" />
     <h1>Split for YouTube</h1>
+    <label class="master" for="splitEnabled" title="Turn the whole extension on or off">
+      <input type="checkbox" id="splitEnabled" role="switch" aria-label="Split layout" />
+      <span class="switch" aria-hidden="true"></span>
+    </label>
   </header>
 
-  <label class="row" for="twoWindows">
-    <span class="text">
-      <span class="title">Two windows</span>
-      <span class="desc">Keep the video in this window and open the description, recommendations and comments in a separate one. Both stay in sync.</span>
-    </span>
-    <input type="checkbox" id="twoWindows" role="switch" />
-    <span class="switch" aria-hidden="true"></span>
-  </label>
+  <main id="options">
+    <label class="row" for="twoWindowMode">
+      <span class="text">
+        <span class="title">Two windows</span>
+        <span class="desc">Keep the video here and open the description, recommendations and comments in a second window.</span>
+      </span>
+      <input type="checkbox" id="twoWindowMode" role="switch" />
+      <span class="switch" aria-hidden="true"></span>
+    </label>
 
-  <p class="hint">Close the pop-up window any time to go back to one window.</p>
+    <label class="row" for="ambientEnabled">
+      <span class="text">
+        <span class="title">Ambient light</span>
+        <span class="desc">Glow the video's colors behind the page. Follows YouTube's Ambient mode, in dark theme.</span>
+      </span>
+      <input type="checkbox" id="ambientEnabled" role="switch" />
+      <span class="switch" aria-hidden="true"></span>
+    </label>
+
+    <label class="row slider-row" for="ambientStrength">
+      <span class="title">Glow strength</span>
+      <input type="range" id="ambientStrength" min="10" max="100" step="5" />
+    </label>
+
+    <label class="row" for="rememberLayout">
+      <span class="text">
+        <span class="title">Remember my layout</span>
+        <span class="desc">Keep pane sizes and collapsed panes from one video to the next.</span>
+      </span>
+      <input type="checkbox" id="rememberLayout" role="switch" />
+      <span class="switch" aria-hidden="true"></span>
+    </label>
+
+    <label class="row" for="videoOnRight">
+      <span class="text">
+        <span class="title">Video on the right</span>
+        <span class="desc">Swap sides: panes on the left, video on the right.</span>
+      </span>
+      <input type="checkbox" id="videoOnRight" role="switch" />
+      <span class="switch" aria-hidden="true"></span>
+    </label>
+  </main>
+
+  <footer>
+    <span id="version"></span>
+    <span class="links">
+      <a href="#" id="shortcuts">Shortcuts</a>
+      <a href="https://github.com/junjing02/split-for-youtube/releases" target="_blank" rel="noopener">What's new</a>
+      <a href="https://github.com/junjing02/split-for-youtube/issues/new/choose" target="_blank" rel="noopener">Report a problem</a>
+    </span>
+  </footer>
 
   <script src="popup.js"></script>
 </body>
