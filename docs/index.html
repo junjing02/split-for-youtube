@@ -40,7 +40,7 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap" />
   <!-- ?v= busts GitHub Pages' 10-minute browser cache (max-age=600) so new HTML never
        loads with a stale stylesheet/script. Bump it whenever style.css or script.js changes. -->
-  <link rel="stylesheet" href="style.css?v=23" />
+  <link rel="stylesheet" href="style.css?v=24" />
 </head>
 <body>
   <!-- Decorative page backdrop (style.css "Page backdrop"). -->
@@ -325,6 +325,64 @@
       </div>
     </section>
 
+    <section id="settings" class="container section">
+      <div class="settings-grid">
+        <div>
+          <h2 class="section-title">Set it up your way.</h2>
+          <p class="section-lead">Everything is one click away, behind the extension's toolbar icon. Changes apply straight away, with no reload.</p>
+          <dl class="settings-list">
+            <div>
+              <dt>Ambient light</dt>
+              <dd>Turn the glow on or off, and choose how strong it is.</dd>
+            </div>
+            <div>
+              <dt>Remember my layout</dt>
+              <dd>Keep your pane sizes and collapsed panes from one video to the next.</dd>
+            </div>
+            <div>
+              <dt>Video on the right</dt>
+              <dd>Swap sides, if you'd rather read on the left.</dd>
+            </div>
+            <div>
+              <dt>Shortcuts</dt>
+              <dd><kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>S</kbd> toggles the split and <kbd>Alt</kbd> <kbd>Shift</kbd> <kbd>W</kbd> toggles Two windows. Double-click a divider to reset it.</dd>
+            </div>
+          </dl>
+        </div>
+
+        <div class="panel-mock" aria-hidden="true">
+          <div class="pm-header">
+            <img src="icon.png" alt="" width="22" height="22" />
+            <span class="pm-name">Split for YouTube</span>
+            <i class="pm-switch is-on"></i>
+          </div>
+          <div class="pm-body">
+            <div class="pm-row">
+              <span class="pm-text"><span class="pm-title">Two windows</span><span class="pm-desc">Keep the video here and open everything else in a second window.</span></span>
+              <i class="pm-switch"></i>
+            </div>
+            <div class="pm-row">
+              <span class="pm-text"><span class="pm-title">Ambient light</span><span class="pm-desc">Glow the video's colors behind the page.</span></span>
+              <i class="pm-switch is-on"></i>
+            </div>
+            <div class="pm-row pm-slider-row">
+              <span class="pm-slider-label">Glow strength</span>
+              <span class="pm-slider"><i></i></span>
+            </div>
+            <div class="pm-row">
+              <span class="pm-text"><span class="pm-title">Remember my layout</span><span class="pm-desc">Keep pane sizes from one video to the next.</span></span>
+              <i class="pm-switch is-on"></i>
+            </div>
+            <div class="pm-row">
+              <span class="pm-text"><span class="pm-title">Video on the right</span><span class="pm-desc">Swap sides: panes on the left.</span></span>
+              <i class="pm-switch"></i>
+            </div>
+          </div>
+          <div class="pm-footer"><span>v1.3</span><span class="pm-links"><span>Shortcuts</span><span>What's new</span><span>Report a problem</span></span></div>
+        </div>
+      </div>
+    </section>
+
     <section id="install" class="container section">
       <div class="install-grid">
         <div>
@@ -399,6 +457,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=23"></script>
+  <script src="script.js?v=24"></script>
 </body>
 </html>

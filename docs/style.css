@@ -1802,6 +1802,196 @@ img {
   }
 }
 
+/* Settings: what you can change (left) beside a static replica of the
+   extension's real toolbar panel (right). Deliberately not animated; the
+   two demos above are the page's only motion. The replica uses the page's
+   own tokens, so it follows light and dark like the real panel does. */
+.settings-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 72px;
+  align-items: center;
+}
+
+.settings-list {
+  margin: 40px 0 0;
+  border-top: 1px solid var(--line);
+}
+
+.settings-list > div {
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.settings-list dt {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.settings-list dd {
+  margin: 4px 0 0;
+  color: var(--text-dim);
+  font-size: 15px;
+  line-height: 1.6;
+}
+
+.settings-list kbd {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  padding: 1px 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: var(--bg-raised);
+  color: var(--text);
+}
+
+.panel-mock {
+  justify-self: center;
+  width: 100%;
+  max-width: 340px;
+  padding: 16px 18px 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  background: var(--surface);
+  box-shadow: var(--shadow-window);
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.pm-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.pm-header img {
+  border-radius: 5px;
+}
+
+.pm-name {
+  flex: 1;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.pm-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 12px 0;
+}
+
+.pm-row + .pm-row {
+  border-top: 1px solid var(--border);
+}
+
+.pm-text {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.pm-title {
+  font-weight: 600;
+}
+
+.pm-desc,
+.pm-slider-label {
+  color: var(--text-dim);
+}
+
+.pm-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 36px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 999px;
+  background: var(--line-strong);
+}
+
+.pm-switch::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+}
+
+.pm-switch.is-on {
+  background: var(--accent);
+}
+
+.pm-switch.is-on::after {
+  transform: translateX(16px);
+  background: var(--on-accent);
+}
+
+/* Glow strength belongs to the Ambient light row above it. */
+.pm-row.pm-slider-row {
+  align-items: center;
+  padding-top: 0;
+  border-top: none;
+}
+
+.pm-slider {
+  position: relative;
+  flex: 1;
+  height: 4px;
+  border-radius: 2px;
+  background: var(--line);
+}
+
+.pm-slider::before {
+  content: "";
+  position: absolute;
+  inset: 0 30% 0 0;
+  border-radius: 2px;
+  background: var(--accent);
+}
+
+.pm-slider i {
+  position: absolute;
+  left: 70%;
+  top: 50%;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--accent);
+  transform: translate(-50%, -50%);
+}
+
+.pm-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+  color: var(--text-dim);
+  font-size: 12px;
+}
+
+.pm-links {
+  display: flex;
+  gap: 12px;
+}
+
+@media (max-width: 860px) {
+  .settings-grid {
+    grid-template-columns: 1fr;
+    gap: 48px;
+  }
+}
+
 /* Install: heading + download on the left, the (genuinely sequential)
    numbered steps on the right. */
 .install-grid {
