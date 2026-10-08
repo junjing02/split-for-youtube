@@ -60,6 +60,7 @@ Click the extension's toolbar icon for the settings: the split itself, Two windo
 
 - `Alt+Shift+S` turns the split on or off, and `Alt+Shift+W` toggles Two windows. Change them at `chrome://extensions/shortcuts`.
 - Double-click a divider to reset it. With a divider focused, the arrow keys move it.
+- Ambient light works in light and dark themes. In dark theme it also follows YouTube's own Ambient mode.
 
 ## Privacy
 
