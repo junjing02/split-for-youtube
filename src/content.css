@@ -496,6 +496,12 @@ html.yt-split-active #yt-split-vresizer {
   flex: 0 0 auto !important;
   margin: 0 !important;
   position: relative;
+  /* Above the panes (z-index: 1). Without this, the wider ::before grab
+     area below was covered by the panes on both sides, leaving only the
+     thin line itself draggable, and a near miss landed on the Comments
+     title and collapsed it (reported as "the resizer isn't working").
+     Same fix as the main divider. */
+  z-index: 2;
   width: 100%;
   height: var(--split-gap);
   border-radius: 2px;
