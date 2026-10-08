@@ -73,9 +73,14 @@
   // tested at/around YouTube's own typical widths. Not independently
   // confirmed; revert this if it doesn't fix it.
   const MIN_SIDE_WIDTH = 400;
-  // Upper limit for the AUTOMATIC default side-pane width, as a fraction of
-  // the layout's width (see applySideWidth). A manual drag can go past it.
-  const MAX_DEFAULT_SIDE_FRACTION = 0.45;
+  // Side pane at (about) half the layout or more, and wide enough in px:
+  // Recommended and Comments sit side by side instead of stacked (see
+  // updateWideSide). 0.49 rather than 0.5 because an even split of the
+  // layout leaves each column just under half once padding and the divider
+  // are taken out.
+  const WIDE_SIDE_CLASS = "yt-split-wide-side";
+  const WIDE_SIDE_FRACTION = 0.49;
+  const WIDE_SIDE_MIN_PX = 640;
   const MIN_VIDEO_WIDTH = 480;
   // Horizontal space inside #columns that's neither video nor side pane:
   // #columns' own left + right padding and the divider column between
@@ -1067,6 +1072,39 @@
     true
   );
 
+  // ---- Wide side pane ----
+  // When the side pane is half the layout or wider (a vertical video's
+  // 50/50 default, a divider dragged that far, or a wide two-window
+  // pop-up), Recommended and Comments are shown side by side, each half the
+  // pane, instead of stacked (content.css, html.yt-split-wide-side). A
+  // ResizeObserver on the pane keeps the class in sync however its width
+  // changes; toggling it only rearranges the pane's insides, never its own
+  // width, so it can't feed back. Not applied when there's no comments
+  // pane to put beside the list (live streams).
+  let sidePaneObserver = null;
+  let observedSidePane = null;
+
+  function updateWideSide() {
+    const sidePane = document.getElementById("yt-split-side-pane");
+    const columns = document.querySelector("#columns");
+    const commentsPane = document.getElementById("yt-split-comments-pane");
+    let wide = false;
+    if (sidePane && columns && commentsPane && commentsPane.style.display !== "none") {
+      const width = sidePane.getBoundingClientRect().width;
+      const total = columns.getBoundingClientRect().width;
+      wide = total > 0 && width >= WIDE_SIDE_MIN_PX && width / total >= WIDE_SIDE_FRACTION;
+    }
+    document.documentElement.classList.toggle(WIDE_SIDE_CLASS, wide);
+  }
+
+  function observeSidePane(sidePane) {
+    if (observedSidePane === sidePane) return;
+    if (sidePaneObserver) sidePaneObserver.disconnect();
+    observedSidePane = sidePane;
+    sidePaneObserver = new ResizeObserver(updateWideSide);
+    sidePaneObserver.observe(sidePane);
+  }
+
   // ---- Subscribe button repair ----
   // When subscribed, YouTube shows the notification bell button and hides
   // the separate Subscribe/"Subscribed" button. Reported: correct on first
@@ -1244,6 +1282,8 @@
 
     spanFullWidth(columns);
     repairSubscribeButtons();
+    observeSidePane(sidePane);
+    updateWideSide();
 
     // Deliberately NOT reclamping side/top width here. This function runs
     // on every MutationObserver-triggered pass — and YouTube's page mutates
@@ -1266,7 +1306,10 @@
   // confused YouTube's own cleanup and broke the next page (e.g. going
   // back to the home page).
   function teardownLayout() {
-    document.documentElement.classList.remove("yt-split-active", "yt-split-solo", "yt-split-companion");
+    document.documentElement.classList.remove("yt-split-active", "yt-split-solo", "yt-split-companion", WIDE_SIDE_CLASS);
+    if (sidePaneObserver) sidePaneObserver.disconnect();
+    sidePaneObserver = null;
+    observedSidePane = null;
     document.body.classList.remove("yt-split-resizing", "yt-split-resizing-v");
     dragState = null;
     vDragState = null;
@@ -1437,15 +1480,16 @@
     // that's a structural CSS guarantee, not something this needs to
     // re-implement in JS.)
     const idealSideWidth = columnsRect.width - idealVideoWidth - overhead;
-    // ...but capped. For a vertical (portrait) video the "exactly what the
-    // video needs" width is tiny, which pinned a thin video against the
-    // far left with an enormous side pane beside it (reported as
-    // uncomfortable). Past MAX_DEFAULT_SIDE_FRACTION the extra room stays
-    // with the video column instead, where the video sits centered
-    // (#player-container-outer's margin: 0 auto) with the ambient glow
-    // around it. Ordinary 16:9 videos never reach the cap.
-    const cappedSideWidth = Math.min(idealSideWidth, columnsRect.width * MAX_DEFAULT_SIDE_FRACTION);
-    setSideWidth(Math.max(MIN_SIDE_WIDTH, cappedSideWidth));
+    // ...but never more than an even 50/50 split. For a vertical
+    // (portrait) video the "exactly what the video needs" width is tiny,
+    // which pinned a thin video against the far left beside an enormous
+    // side pane (reported as uncomfortable; a 45% cap was tried first and
+    // rejected in favor of an even split). Two equal columns: the video
+    // sits centered in its half (#player-container-outer's margin: 0 auto),
+    // and at that width the side pane goes side by side (updateWideSide).
+    // Ordinary 16:9 videos never reach this limit.
+    const evenSplit = (columnsRect.width - overhead) / 2;
+    setSideWidth(Math.max(MIN_SIDE_WIDTH, Math.min(idealSideWidth, evenSplit)));
   }
 
   // #below no longer shares the left column with the video (it moved into

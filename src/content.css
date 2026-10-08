@@ -876,6 +876,54 @@ html.yt-split-active:not(:has(#secondary.yt-split-pane-collapsed)):not(
   margin-top: calc(-1 * var(--split-gap)) !important;
 }
 
+/* Wide side pane (content.js updateWideSide adds .yt-split-wide-side when
+   the pane is half the layout or wider): Recommended and Comments side by
+   side, half the pane each, under the full-width description, instead of
+   stacked. The pane becomes a 2-column grid; the stacked layout's flex
+   sizing, gap-cancelling margins and the vertical resizer don't apply.
+   Only while BOTH panes are expanded: if either is collapsed to its
+   header, the normal stacked layout (above) gives the open one the full
+   width. The selectors repeat the :not(:has(...)) pair so they outrank
+   the negative-margin rules above. */
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-side-pane {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+}
+
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-desc-pane {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #secondary {
+  grid-column: 1;
+  grid-row: 2;
+  margin: 0 !important;
+}
+
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-comments-pane {
+  grid-column: 2;
+  grid-row: 2;
+  margin: 0 !important;
+}
+
+html.yt-split-active.yt-split-wide-side #yt-split-vresizer {
+  display: none !important;
+}
+
 /* #secondary normally never grows past its dragged/50% basis (flex-grow: 0
    — see the long comment above on why), which is right while both panes
    are expanded. But that meant collapsing comments (freeing up all the
