@@ -73,6 +73,9 @@
   // tested at/around YouTube's own typical widths. Not independently
   // confirmed; revert this if it doesn't fix it.
   const MIN_SIDE_WIDTH = 400;
+  // Upper limit for the AUTOMATIC default side-pane width, as a fraction of
+  // the layout's width (see applySideWidth). A manual drag can go past it.
+  const MAX_DEFAULT_SIDE_FRACTION = 0.45;
   const MIN_VIDEO_WIDTH = 480;
   // Horizontal space inside #columns that's neither video nor side pane:
   // #columns' own left + right padding and the divider column between
@@ -1434,7 +1437,15 @@
     // that's a structural CSS guarantee, not something this needs to
     // re-implement in JS.)
     const idealSideWidth = columnsRect.width - idealVideoWidth - overhead;
-    setSideWidth(Math.max(MIN_SIDE_WIDTH, idealSideWidth));
+    // ...but capped. For a vertical (portrait) video the "exactly what the
+    // video needs" width is tiny, which pinned a thin video against the
+    // far left with an enormous side pane beside it (reported as
+    // uncomfortable). Past MAX_DEFAULT_SIDE_FRACTION the extra room stays
+    // with the video column instead, where the video sits centered
+    // (#player-container-outer's margin: 0 auto) with the ambient glow
+    // around it. Ordinary 16:9 videos never reach the cap.
+    const cappedSideWidth = Math.min(idealSideWidth, columnsRect.width * MAX_DEFAULT_SIDE_FRACTION);
+    setSideWidth(Math.max(MIN_SIDE_WIDTH, cappedSideWidth));
   }
 
   // #below no longer shares the left column with the video (it moved into
