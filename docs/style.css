@@ -2,12 +2,13 @@
    or the inverse in dark mode) where the ONLY color is the live demo: a
    cinematic teal-and-orange video, plus (dark mode only, like the
    extension's ambient light) its glow and the light it spills onto the page. One bold element, everything else disciplined.
-   Light by default; dark follows prefers-color-scheme (no toggle).
+   Light by default; dark by system setting or the nav's toggle (theme.js).
 
    Palette: paper #FAFAFA, ink #111316, slate #5D636D, line (ink at low
    alpha); dark: #0A0A0B, #F3F3F4, #9B9CA3. Demo only: orange #FB923C,
    teal #14B8A6, deep teal #0E7490. */
 :root {
+  color-scheme: light;
   --bg: #fafafa;
   --surface: #ffffff;
   --bg-raised: #f1f1f2;
@@ -42,8 +43,41 @@
   --font: "Geist", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
+/* Dark tokens, in two places with the same values: (1) the visitor's
+   explicit choice or the system setting as applied by theme.js
+   (html[data-theme="dark"]); (2) the system setting on its own, for when
+   that script doesn't run, unless light was explicitly chosen. Keep the
+   two blocks identical. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0a0a0b;
+  --surface: #111113;
+  --bg-raised: #18181b;
+  --nav-bg: rgba(10, 10, 11, 0.8);
+  --text: #f3f3f4;
+  --text-dim: #9b9ca3;
+  --border: rgba(255, 255, 255, 0.08);
+  --line: rgba(255, 255, 255, 0.14);
+  --line-strong: rgba(255, 255, 255, 0.3);
+  --accent: #f3f3f4;
+  --accent-hover: #ffffff;
+  --on-accent: #0a0a0b;
+  --mock-bg: #0f0f0f;
+  --mock-pane: rgba(27, 27, 29, 0.6);
+  --mock-glow: 0.85;
+  --spill: 0.7;
+  --spill-hint: 0.12;
+  --grain: 0.06;
+  --rule: rgba(255, 255, 255, 0.055);
+  --beam: rgba(255, 255, 255, 0.08);
+  --ambient-bg: 0.13;
+  --shadow-window: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 2px 4px rgba(0, 0, 0, 0.4),
+    0 16px 32px -12px rgba(0, 0, 0, 0.5), 0 56px 112px -40px rgba(0, 0, 0, 0.9);
+}
+
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
     --bg: #0a0a0b;
     --surface: #111113;
     --bg-raised: #18181b;
@@ -277,6 +311,48 @@ img {
 .nav-github svg {
   width: 16px;
   height: 16px;
+}
+
+/* Theme toggle: shows the icon for the theme a click switches TO (moon
+   in light, sun in dark). Hidden until theme.js has set data-theme, since
+   without the script it couldn't do anything. */
+.theme-toggle {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  margin-left: -6px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 999px;
+  background: none;
+  color: var(--text-dim);
+  cursor: pointer;
+  transition: color 0.15s ease, border-color 0.15s ease;
+}
+
+:root[data-theme] .theme-toggle {
+  display: inline-flex;
+}
+
+.theme-toggle:hover {
+  color: var(--text);
+  border-color: var(--border);
+}
+
+.theme-toggle svg {
+  width: 17px;
+  height: 17px;
+}
+
+.theme-toggle .icon-sun,
+:root[data-theme="dark"] .theme-toggle .icon-moon {
+  display: none;
+}
+
+:root[data-theme="dark"] .theme-toggle .icon-sun {
+  display: block;
 }
 
 /* Hero: left-aligned type as the main typographic moment, then the demo
