@@ -61,6 +61,14 @@ html.yt-split-active:not([dark]) {
   --split-text-dim: #606060;
   --split-text: #0f0f0f;
   --split-pane-bg: rgba(242, 242, 242, 0.6);
+  /* Ambient light in light theme (an addition over YouTube, which has no
+     Ambient mode here): content.js lifts the sampled colors toward white,
+     so the glow is a pastel wash on the white page. More saturation to
+     make up for that lift, a little less strength, and much less grain
+     (it reads as dirt on white). */
+  --split-ambient-saturate: 1.9;
+  --split-ambient-scale: 0.75;
+  --split-ambient-grain: 0.1;
 }
 
 /* Full-bleed: #columns below is width: 100% of its own parent, but that
@@ -152,8 +160,9 @@ html.yt-split-active #columns {
    behind the whole window is redrawn from the video every frame, with
    stacked, progressively larger copies spreading out from the video's
    actual position, so each part of the background takes the color of the
-   nearest video edge. It follows YouTube's own Ambient mode toggle (and
-   dark theme): content.js toggles html.yt-split-ambient-on.
+   nearest video edge. In dark theme it follows YouTube's own Ambient mode
+   toggle; in light theme only the extension's switch: content.js toggles
+   html.yt-split-ambient-on.
 
    Replaces restyling YouTube's own glow (#cinematics), which lagged
    (YouTube only samples the video now and then and slowly cross-fades)
@@ -190,7 +199,7 @@ html.yt-split-active #cinematics-full-bleed-container {
 }
 
 html.yt-split-ambient-on #yt-split-ambient {
-  opacity: var(--split-ambient-opacity);
+  opacity: calc(var(--split-ambient-opacity) * var(--split-ambient-scale, 1));
 }
 
 /* Anti-banding grain: a SEPARATE layer above the glow, never inside the

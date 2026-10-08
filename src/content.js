@@ -1004,6 +1004,7 @@
   const AMBIENT_SAMPLE_H = 36;
   const AMBIENT_CANVAS_SCALE = 1 / 8; // canvas px per CSS px
   const AMBIENT_CANVAS_BLUR = 7; // in canvas px (~56 CSS px)
+  const AMBIENT_LIGHT_LIFT = "rgb(190, 190, 190)"; // light theme: how far the sample is lifted toward white
   const AMBIENT_LEVELS = 12;
   const AMBIENT_BLEND = 0.5; // weight of each new frame over the previous
   const AMBIENT_FRAME_MS = 1000 / 30;
@@ -1061,9 +1062,12 @@
   // Whether YouTube's own Ambient mode is on, and which signal said so.
   // Order: the live settings-menu item (saved for later), then the last
   // saved state, then (only if the state has never been read) whether
-  // YouTube set up its own glow canvas. Dark theme only, like YouTube.
+  // YouTube set up its own glow canvas. That's dark theme: YouTube has no
+  // Ambient mode in light theme, so there the extension's own "Ambient
+  // light" switch (settings.ambientEnabled, checked by the caller) is the
+  // only control, and the glow is on.
   function readYouTubeAmbientMode() {
-    if (!document.documentElement.hasAttribute("dark")) return { on: false, source: "light theme" };
+    if (!document.documentElement.hasAttribute("dark")) return { on: true, source: "light theme (extension switch)" };
     const item = findAmbientMenuItem();
     const checked = item ? readMenuChecked(item) : null;
     if (checked !== null) {
@@ -1185,6 +1189,16 @@
 
     try {
       a.sctx.drawImage(video, 0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
+      // Light theme: lift the sample toward white (screen blend), so dark
+      // scenes fade into the white page instead of smearing gray over it,
+      // and colors come out as pastels. content.css raises the saturation
+      // to compensate.
+      if (!document.documentElement.hasAttribute("dark")) {
+        a.sctx.globalCompositeOperation = "screen";
+        a.sctx.fillStyle = AMBIENT_LIGHT_LIFT;
+        a.sctx.fillRect(0, 0, AMBIENT_SAMPLE_W, AMBIENT_SAMPLE_H);
+        a.sctx.globalCompositeOperation = "source-over";
+      }
     } catch (e) {
       return; // frame not drawable right now (e.g. mid source switch)
     }
