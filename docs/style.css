@@ -26,11 +26,12 @@
   /* Translucent, like the extension's panes, so the mock ambient glow
      shows through them after the split. */
   --mock-pane: rgba(244, 244, 246, 0.72);
-  /* Demo ambient glow: none at all in light mode (the extension's ambient
-     light is dark-theme only, like YouTube's); dark mode sets these. */
-  --mock-glow: 0; /* glow inside the mock window, after the split */
-  --spill: 0; /* glow spilling onto the page, after the split */
-  --spill-hint: 0; /* faint spill before the split */
+  /* Demo ambient glow: a soft pastel wash in light mode, like the
+     extension's own light-theme glow (v1.3.4); dark mode sets these
+     stronger. */
+  --mock-glow: 0.45; /* glow inside the mock window, after the split */
+  --spill: 0.28; /* glow spilling onto the page, after the split */
+  --spill-hint: 0.05; /* faint spill before the split */
   /* Page backdrop: grain and layout rules in both themes; the projector
      beam and ambient drift are dark mode only (0 here). */
   --grain: 0.05;
@@ -1378,8 +1379,7 @@ img {
   margin: 56px auto 0;
 }
 
-/* Ambient spill around the main window, dark mode only (--spill is 0 in
-   light mode). */
+/* Ambient spill around the main window (softer in light mode). */
 .tw-demo::before {
   content: "";
   position: absolute;
@@ -1545,7 +1545,7 @@ img {
 }
 
 /* Ambient light inside the main window, one layer per demo video,
-   cross-faded on switch. Dark mode only (--mock-glow is 0 in light). */
+   cross-faded on switch (softer in light mode). */
 .tw-ambient {
   position: absolute;
   z-index: -1;
