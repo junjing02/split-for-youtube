@@ -554,6 +554,32 @@
   // the 50% default on every navigation, same as the main divider).
   let vDragState = null;
 
+  // Side by side (html.yt-split-wide-side with both panes expanded, see
+  // "Wide side pane"), the same divider element stands UPRIGHT between the
+  // Recommended and Comments columns and resizes them left/right instead.
+  // The Recommended column's width lives in --yt-split-wide-w (unset =
+  // even halves). Each column keeps at least WIDE_MIN_COLUMN.
+  const WIDE_WIDTH_VAR = "--yt-split-wide-w";
+  const WIDE_MIN_COLUMN = 200;
+
+  function isSideBySide(sidePane) {
+    return (
+      document.documentElement.classList.contains(WIDE_SIDE_CLASS) &&
+      !!sidePane &&
+      getComputedStyle(sidePane).display === "grid"
+    );
+  }
+
+  function setWideWidth(px) {
+    if (px == null) document.documentElement.style.removeProperty(WIDE_WIDTH_VAR);
+    else document.documentElement.style.setProperty(WIDE_WIDTH_VAR, px + "px");
+  }
+
+  function clampWideWidth(px, sidePaneRect) {
+    const max = Math.max(WIDE_MIN_COLUMN, sidePaneRect.width - WIDE_MIN_COLUMN - 12);
+    return Math.max(WIDE_MIN_COLUMN, Math.min(max, px));
+  }
+
   function setTopHeight(px) {
     if (px == null) {
       document.documentElement.style.removeProperty(TOP_HEIGHT_VAR);
@@ -626,6 +652,12 @@
     // height ACTUALLY was at mousedown instead means dragging always
     // starts from the true current size with zero jump, then follows the
     // cursor 1:1 no matter where within the hit-box it was grabbed.
+    if (vDragState.wide) {
+      // Same delta-from-mousedown approach, sideways. Cheap enough (one
+      // CSS var, no player to nudge) to apply directly.
+      setWideWidth(clampWideWidth(vDragState.startWidth + (e.clientX - vDragState.startX), vDragState.rect));
+      return;
+    }
     let px = vDragState.startHeight + (e.clientY - vDragState.startY);
     px = clampTopHeight(px, vDragState.rect, vDragState.descHeight);
     pendingTopHeight = px;
@@ -639,7 +671,7 @@
     if (!vDragState) return;
     vDragState = null;
     lastVDragEndAt = Date.now();
-    document.body.classList.remove("yt-split-resizing-v");
+    document.body.classList.remove("yt-split-resizing-v", "yt-split-resizing");
     flushTopHeight(); // apply the latest dragged position immediately, don't wait on a pending frame
     // Only kept across videos when "Remember my layout" is on.
     saveLayout();
@@ -656,23 +688,44 @@
     vresizer.setAttribute("aria-label", "Resize recommendations and comments");
     vresizer.tabIndex = 0;
     vresizer.addEventListener("keydown", (e) => {
-      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       const secondary = document.querySelector("#secondary");
       if (!secondary) return;
+      if (isSideBySide(sidePane)) {
+        if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+        e.preventDefault();
+        e.stopPropagation();
+        const width = secondary.getBoundingClientRect().width + (e.key === "ArrowRight" ? 24 : -24);
+        setWideWidth(clampWideWidth(width, sidePane.getBoundingClientRect()));
+        saveLayout();
+        return;
+      }
+      if (e.key !== "ArrowUp" && e.key !== "ArrowDown") return;
       e.preventDefault();
       e.stopPropagation();
       const height = secondary.getBoundingClientRect().height + (e.key === "ArrowDown" ? 24 : -24);
       setTopHeight(clampTopHeight(height, sidePane.getBoundingClientRect()));
       saveLayout();
     });
-    // Double-click: back to the even default.
+    // Double-click: back to the even default (of whichever layout is showing).
     vresizer.addEventListener("dblclick", () => {
-      setTopHeight(null);
+      if (isSideBySide(sidePane)) setWideWidth(null);
+      else setTopHeight(null);
       saveLayout();
     });
     vresizer.addEventListener("mousedown", (e) => {
       const rect = sidePane.getBoundingClientRect();
       const secondary = document.querySelector("#secondary");
+      if (isSideBySide(sidePane)) {
+        vDragState = {
+          wide: true,
+          rect,
+          startX: e.clientX,
+          startWidth: secondary ? secondary.getBoundingClientRect().width : rect.width / 2,
+        };
+        document.body.classList.add("yt-split-resizing");
+        e.preventDefault();
+        return;
+      }
       const startHeight = secondary ? secondary.getBoundingClientRect().height : MIN_PANE_HEIGHT;
       const descPane = document.getElementById("yt-split-desc-pane");
       const descHeight = descPane ? descPane.getBoundingClientRect().height : 0;
@@ -1197,6 +1250,7 @@
     savedLayout = {
       sideRatio: hasManualSideWidth ? manualSideWidthRatio : null,
       topHeight: currentTopHeightPx(),
+      wideWidth: parseFloat(document.documentElement.style.getPropertyValue(WIDE_WIDTH_VAR)) || null,
       secondaryCollapsed,
       commentsCollapsed,
       descExpanded,
@@ -2042,6 +2096,7 @@
     // navigation) and would silently carry over. Resetting here guarantees
     // every new video starts from the video-maximizing default again.
     setTopHeight(null);
+    setWideWidth(null);
     document.documentElement.style.removeProperty(SIDE_WIDTH_VAR);
     hasManualSideWidth = false;
     // Same reasoning for the video-ended widened state: it's specific to
@@ -2072,6 +2127,7 @@
         manualSideWidthRatio = savedLayout.sideRatio;
       }
       if (typeof savedLayout.topHeight === "number") setTopHeight(savedLayout.topHeight);
+      if (typeof savedLayout.wideWidth === "number") setWideWidth(savedLayout.wideWidth);
       secondaryCollapsed = !!savedLayout.secondaryCollapsed;
       commentsCollapsed = !!savedLayout.commentsCollapsed;
       descExpanded = !!savedLayout.descExpanded;

@@ -917,8 +917,13 @@ html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collap
   )
   #yt-split-side-pane {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  /* Recommended | divider | Comments. --yt-split-wide-w is the dragged
+     width of the Recommended column (unset = even halves); both columns
+     keep a 200px minimum, enforced here by the grid as well as in JS. The
+     divider column IS the gap, so no column-gap on top of it. */
+  grid-template-columns: minmax(200px, var(--yt-split-wide-w, 1fr)) var(--split-gap) minmax(200px, 1fr);
   grid-template-rows: auto minmax(0, 1fr);
+  column-gap: 0;
 }
 
 html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
@@ -942,13 +947,35 @@ html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collap
     :has(#yt-split-comments-pane.yt-split-pane-collapsed)
   )
   #yt-split-comments-pane {
-  grid-column: 2;
+  grid-column: 3;
   grid-row: 2;
   margin: 0 !important;
 }
 
-html.yt-split-active.yt-split-wide-side #yt-split-vresizer {
-  display: none !important;
+/* The divider stands upright between the two columns and drags sideways
+   (content.js isSideBySide). Its grab area extends left/right instead of
+   up/down. When a pane is collapsed, the existing rule further down hides
+   it, as in the stacked layout. */
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-vresizer {
+  grid-column: 2;
+  grid-row: 2;
+  width: auto;
+  height: auto;
+  cursor: col-resize;
+}
+
+html.yt-split-active.yt-split-wide-side:not(:has(#secondary.yt-split-pane-collapsed)):not(
+    :has(#yt-split-comments-pane.yt-split-pane-collapsed)
+  )
+  #yt-split-vresizer::before {
+  top: 0;
+  bottom: 0;
+  left: -7px;
+  right: -7px;
+  cursor: col-resize;
 }
 
 /* #secondary normally never grows past its dragged/50% basis (flex-grow: 0
