@@ -788,8 +788,43 @@ html.yt-split-active #below #top-row {
   align-items: center !important;
   justify-content: space-between !important;
   gap: 12px 16px !important;
-  margin: 0 !important;
+  margin: 12px 0 0 !important;
   height: auto !important;
+}
+
+/* One vertical rhythm for the description pane: 12px between the title,
+   the channel row, the description card and any further block YouTube
+   puts in #below, and none above the first or below the last (the pane's
+   own 16px padding is the edge spacing). YouTube's native margins here
+   are a mix of sizes meant for its wide layout; an earlier rule here also
+   zeroed the channel row's margin, leaving the title sitting right on it.
+   Margins only, never display. Ids are from memory of YouTube's markup;
+   a wrong one is a no-op. */
+html.yt-split-active #below > *,
+html.yt-split-active #below ytd-watch-metadata,
+html.yt-split-active #below #above-the-fold,
+html.yt-split-active #below #above-the-fold #title,
+html.yt-split-active #below #above-the-fold #title h1 {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
+}
+
+html.yt-split-active #below > * + * {
+  margin-top: 12px !important;
+}
+
+html.yt-split-active #below #above-the-fold,
+html.yt-split-active #below ytd-watch-metadata {
+  padding-top: 0 !important;
+  padding-bottom: 0 !important;
+}
+
+html.yt-split-active #below #bottom-row {
+  margin: 12px 0 0 !important;
+}
+
+html.yt-split-active #below #bottom-row #description {
+  margin: 0 !important;
 }
 
 html.yt-split-active #below #owner {
@@ -808,14 +843,19 @@ html.yt-split-active #below #actions ytd-menu-renderer {
   overflow: visible !important;
 }
 
+/* The action buttons keep their own width (no grow). On the channel's row
+   the row's space-between pushes them to the right edge; when they wrap
+   to their own line they start at the left, in line with everything else
+   in the pane. They used to grow and right-align, so a wrapped row of
+   buttons hung off the right edge under left-aligned content. */
 html.yt-split-active #below #actions {
-  flex: 1 1 auto !important;
-  margin-left: auto !important;
+  flex: 0 1 auto !important;
+  margin-left: 0 !important;
 }
 
 html.yt-split-active #below #actions-inner,
 html.yt-split-active #below #actions #menu {
-  justify-content: flex-end !important;
+  justify-content: flex-start !important;
 }
 
 /* Subscribe button (+ notification bell): visible again, by request. It
