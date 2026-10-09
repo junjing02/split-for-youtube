@@ -19,17 +19,30 @@
   const DEFAULT_SETTINGS = {
     splitEnabled: true,
     ambientEnabled: true,
-    ambientStrength: 70,
+    ambientStrength: 70, // dark theme
+    ambientStrengthLight: 70,
+    showRecommendations: true,
+    showComments: true,
+    sideWidth: "auto", // or a SIDE_WIDTH_PRESETS key
     rememberLayout: false,
     videoOnRight: false,
   };
   let settings = { ...DEFAULT_SETTINGS };
+  // "Side pane width" presets: the side pane's default share of the layout.
+  // "auto" (not listed) sizes it around the video instead (applySideWidth).
+  const SIDE_WIDTH_PRESETS = { narrow: 0.3, balanced: 0.4, wide: 0.5 };
+  const HIDE_RECS_CLASS = "yt-split-hide-recs";
+  const HIDE_COMMENTS_CLASS = "yt-split-hide-comments";
   // What "Remember my layout" last saved: { sideRatio, topHeight,
   // secondaryCollapsed, commentsCollapsed, descExpanded }, or null.
   let savedLayout = null;
   // True until storage says otherwise, so the first-run hint can't flash
   // up before we know whether it was already dismissed.
   let welcomeSeen = true;
+  // The WHATS_NEW.version whose note was last dismissed (see "First-run
+  // hint"); same "assume seen until storage answers" default.
+  let seenVersion = null;
+  let storageLoaded = false;
 
   function isSwapped() {
     return settings.videoOnRight && windowRole === "none";
@@ -1012,6 +1025,12 @@
   const AMBIENT_LEVELS = 12;
   const AMBIENT_BLEND = 0.5; // weight of each new frame over the previous
   const AMBIENT_FRAME_MS = 1000 / 30;
+  // With the system's "reduce motion" setting on, the glow updates a few
+  // times a second and eases in slowly, so it drifts instead of flickering
+  // along with every cut.
+  const AMBIENT_CALM_FRAME_MS = 250;
+  const AMBIENT_CALM_BLEND = 0.12;
+  const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
   const AMBIENT_CHECK_MS = 500; // how often to re-check YouTube's setting
   const AMBIENT_STILL_FRAMES = 12; // redraws after pausing before idling
   // Start of the path in YouTube's "Ambient mode" settings-menu icon.
@@ -1159,7 +1178,8 @@
       ambient.fresh = true;
       return;
     }
-    if (!ambient.on || now - ambient.lastDraw < AMBIENT_FRAME_MS - 2) return;
+    const frameMs = reducedMotion.matches ? AMBIENT_CALM_FRAME_MS : AMBIENT_FRAME_MS;
+    if (!ambient.on || now - ambient.lastDraw < frameMs - 2) return;
 
     const video = document.querySelector("#primary video");
     const player = document.querySelector("#player-container-outer");
@@ -1269,7 +1289,7 @@
 
     a.ctx.save();
     if (a.fresh) a.ctx.clearRect(0, 0, W, H);
-    a.ctx.globalAlpha = a.fresh ? 1 : AMBIENT_BLEND;
+    a.ctx.globalAlpha = a.fresh ? 1 : reducedMotion.matches ? AMBIENT_CALM_BLEND : AMBIENT_BLEND;
     a.ctx.filter = `blur(${AMBIENT_CANVAS_BLUR}px)`;
     a.ctx.drawImage(a.frame, 0, 0);
     a.ctx.restore();
@@ -1351,20 +1371,39 @@
     if (card) card.remove();
   }
 
+  // After an update, the same card shows once as a short "What's new" note
+  // for people who had already dismissed the first-run hint. Keyed by
+  // WHATS_NEW.version (bump it only when there's something worth telling),
+  // not the manifest version, so small fixes don't nag. New installs get
+  // the first-run hint only: dismissing it marks this note seen too.
+  const WHATS_NEW = {
+    version: "1.4",
+    tips: [
+      "Ambient light now works in YouTube's light theme too, with its own strength.",
+      "Hide Recommended or Comments completely, and pick a default side pane width.",
+      "Find these under the extension's toolbar icon.",
+    ],
+  };
+
   function maybeShowWelcome() {
-    if (welcomeSeen || windowRole !== "none" || document.getElementById(WELCOME_ID)) return;
+    if (!storageLoaded || windowRole !== "none" || document.getElementById(WELCOME_ID)) return;
+    const whatsNew = welcomeSeen;
+    if (whatsNew && seenVersion === WHATS_NEW.version) return;
     const card = document.createElement("div");
     card.id = WELCOME_ID;
     card.setAttribute("role", "status");
     const title = document.createElement("div");
     title.className = "yt-split-welcome-title";
-    title.textContent = "Split for YouTube is on";
+    title.textContent = whatsNew ? "New in Split for YouTube" : "Split for YouTube is on";
     const list = document.createElement("ul");
-    for (const tip of [
-      "Drag the lines between panes to resize. Double-click one to reset it.",
-      "Click a pane's title to collapse or expand it.",
-      "Two windows and more settings are under the extension's toolbar icon.",
-    ]) {
+    const tips = whatsNew
+      ? WHATS_NEW.tips
+      : [
+          "Drag the lines between panes to resize. Double-click one to reset it.",
+          "Click a pane's title to collapse or expand it.",
+          "Two windows and more settings are under the extension's toolbar icon.",
+        ];
+    for (const tip of tips) {
       const li = document.createElement("li");
       li.textContent = tip;
       list.appendChild(li);
@@ -1376,9 +1415,10 @@
     button.addEventListener("mousedown", (e) => e.preventDefault());
     button.addEventListener("click", () => {
       welcomeSeen = true;
+      seenVersion = WHATS_NEW.version;
       hideWelcome();
       try {
-        chrome.storage.local.set({ welcomeSeen: true });
+        chrome.storage.local.set({ welcomeSeen: true, seenVersion });
       } catch (e) {
         // extension reloaded; it will simply show once more
       }
@@ -1399,12 +1439,28 @@
   let sidePaneObserver = null;
   let observedSidePane = null;
 
+  // "Show recommendations" / "Show comments" (toolbar panel): off removes
+  // the pane completely (content.css), and the other one takes the space.
+  // During a live stream #secondary holds the live chat, which is never
+  // hidden by the recommendations setting.
+  function applyHiddenPanes() {
+    const root = document.documentElement;
+    const secondary = document.querySelector("#yt-split-side-pane #secondary");
+    root.classList.toggle(
+      HIDE_RECS_CLASS,
+      !settings.showRecommendations && !(secondary && hasLiveChat(secondary))
+    );
+    root.classList.toggle(HIDE_COMMENTS_CLASS, !settings.showComments);
+  }
+
   function updateWideSide() {
     const sidePane = document.getElementById("yt-split-side-pane");
     const columns = document.querySelector("#columns");
     const commentsPane = document.getElementById("yt-split-comments-pane");
     let wide = false;
-    if (sidePane && columns && commentsPane && commentsPane.style.display !== "none") {
+    const root = document.documentElement;
+    const paneHidden = root.classList.contains(HIDE_RECS_CLASS) || root.classList.contains(HIDE_COMMENTS_CLASS);
+    if (!paneHidden && sidePane && columns && commentsPane && commentsPane.style.display !== "none") {
       const width = sidePane.getBoundingClientRect().width;
       const total = columns.getBoundingClientRect().width;
       wide = total > 0 && width >= WIDE_SIDE_MIN_PX && width / total >= WIDE_SIDE_FRACTION;
@@ -1603,6 +1659,7 @@
 
     spanFullWidth(columns);
     repairSubscribeButtons();
+    applyHiddenPanes();
     observeSidePane(sidePane);
     updateWideSide();
     maybeShowWelcome();
@@ -1633,6 +1690,8 @@
       "yt-split-solo",
       "yt-split-companion",
       "yt-split-swapped",
+      HIDE_RECS_CLASS,
+      HIDE_COMMENTS_CLASS,
       WIDE_SIDE_CLASS
     );
     hideWelcome();
@@ -1778,6 +1837,17 @@
     const availableHeight = primaryInner.getBoundingClientRect().height;
     if (columnsRect.width <= 0 || availableHeight <= 0) {
       setSideWidth(DEFAULT_SIDE_WIDTH);
+      return;
+    }
+
+    // "Side pane width" preset (toolbar panel): a fixed share of the layout
+    // instead of sizing around the video. Like a drag, it goes through the
+    // drag clamp and both overlap guards.
+    const preset = SIDE_WIDTH_PRESETS[settings.sideWidth];
+    if (preset && windowRole === "none") {
+      setSideWidth(clampSideWidth(preset * columnsRect.width, columnsRect));
+      enforceMinVideoHeight();
+      preventColumnOverlap();
       return;
     }
 
@@ -2571,16 +2641,20 @@
   // structure rebuild it; the ambient ones are applied in place so moving
   // the strength slider doesn't reset a dragged divider.
   function applyAmbientSettings() {
-    const strength = Math.max(0, Math.min(100, Number(settings.ambientStrength) || 0));
-    document.documentElement.style.setProperty("--split-ambient-opacity", String(strength / 100));
+    const percent = (value) => String(Math.max(0, Math.min(100, Number(value) || 0)) / 100);
+    const style = document.documentElement.style;
+    style.setProperty("--split-ambient-opacity", percent(settings.ambientStrength));
+    style.setProperty("--split-ambient-opacity-light", percent(settings.ambientStrengthLight));
     if (ambient) ambient.lastCheck = 0; // re-evaluate on/off on the next frame
   }
 
   try {
-    chrome.storage.local.get({ ...DEFAULT_SETTINGS, savedLayout: null, welcomeSeen: false }).then((stored) => {
+    chrome.storage.local.get({ ...DEFAULT_SETTINGS, savedLayout: null, welcomeSeen: false, seenVersion: null }).then((stored) => {
       for (const key of Object.keys(DEFAULT_SETTINGS)) settings[key] = stored[key];
       savedLayout = stored.savedLayout;
       welcomeSeen = !!stored.welcomeSeen;
+      seenVersion = stored.seenVersion;
+      storageLoaded = true;
       applyAmbientSettings();
       if (isWatchPage()) start();
     });
@@ -2591,7 +2665,7 @@
         if (!changes[key]) continue;
         const value = changes[key].newValue;
         settings[key] = value === undefined ? DEFAULT_SETTINGS[key] : value;
-        if (key === "splitEnabled" || key === "videoOnRight" || key === "rememberLayout") rebuild = true;
+        if (key === "splitEnabled" || key === "videoOnRight" || key === "rememberLayout" || key === "sideWidth") rebuild = true;
       }
       if (changes.rememberLayout && !settings.rememberLayout) {
         // Turned off: forget what was saved, so turning it back on later
@@ -2601,7 +2675,14 @@
       } else if (changes.rememberLayout) {
         saveLayout();
       }
-      if (changes.ambientEnabled || changes.ambientStrength) applyAmbientSettings();
+      if (changes.ambientEnabled || changes.ambientStrength || changes.ambientStrengthLight) applyAmbientSettings();
+      // Applied in place (no start()), so a dragged divider survives.
+      if ((changes.showRecommendations || changes.showComments) && !rebuild && isWatchPage()) ensureLayout();
+      if (changes.welcomeSeen) welcomeSeen = !!changes.welcomeSeen.newValue;
+      if (changes.seenVersion) {
+        seenVersion = changes.seenVersion.newValue;
+        if (seenVersion === WHATS_NEW.version) hideWelcome(); // dismissed in another tab
+      }
       if (rebuild) {
         if (isWatchPage()) start();
         else teardownLayout();

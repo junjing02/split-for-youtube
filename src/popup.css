@@ -72,7 +72,7 @@ h1 {
   display: flex;
   align-items: flex-start;
   gap: 14px;
-  padding: 12px 0;
+  padding: 10px 0;
   cursor: pointer;
 }
 
@@ -150,8 +150,41 @@ input:focus-visible + .switch {
 }
 
 .slider-row .title {
+  flex: 0 0 118px;
   font-weight: 400;
   color: var(--text-dim);
+}
+
+.row.slider-row + .row.slider-row {
+  border-top: none;
+}
+
+/* One-line rows (no description): tighter, vertically centered. */
+.row.compact {
+  align-items: center;
+  padding: 9px 0;
+}
+
+.row.compact .title {
+  flex: 1;
+}
+
+.row.compact .switch {
+  margin-top: 0;
+}
+
+select {
+  flex: 0 0 auto;
+  padding: 4px 6px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: var(--bg);
+  color: var(--text);
+  font: inherit;
+}
+
+select:disabled {
+  opacity: 0.5;
 }
 
 input[type="range"] {

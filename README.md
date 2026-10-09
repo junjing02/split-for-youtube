@@ -33,7 +33,7 @@
 - **Ambient light** — the video's colors glow softly behind the page, in light theme too, which YouTube itself doesn't offer.
 - **Two windows** — keep the video here and the comments in a second window, always in sync.
 - **Thoughtful defaults** — live chat, light and dark themes, and the end of a video are all handled for you.
-- **Yours to tune** — a toolbar panel to switch things on and off, set the glow strength, remember your layout or put the video on the right.
+- **Yours to tune** — a toolbar panel to set the glow strength, hide recommendations or comments, choose the side pane's width, remember your layout or put the video on the right.
 - **Keyboard friendly** — shortcuts for the split and Two windows, and dividers and pane titles you can reach with Tab.
 - **Out of the way** — theater mode and small windows get YouTube's normal layout.
 
@@ -56,7 +56,7 @@ Click the extension's toolbar icon and switch on **Two windows**. The video fill
 
 ## Settings and shortcuts
 
-Click the extension's toolbar icon for the settings: the split itself, Two windows, ambient light and its strength, **Remember my layout**, and **Video on the right**.
+Click the extension's toolbar icon for the settings: the split itself, Two windows, ambient light and its strength in each theme, **Show recommendations**, **Show comments**, **Side pane width**, **Remember my layout**, and **Video on the right**.
 
 - `Alt+Shift+S` turns the split on or off, and `Alt+Shift+W` toggles Two windows. Change them at `chrome://extensions/shortcuts`.
 - Double-click a divider to reset it. With a divider focused, the arrow keys move it.

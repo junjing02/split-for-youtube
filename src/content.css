@@ -197,8 +197,14 @@ html.yt-split-active #cinematics-full-bleed-container {
   height: 100%;
 }
 
+/* content.js sets both strengths inline on <html>: --split-ambient-opacity
+   (dark theme) and --split-ambient-opacity-light. */
 html.yt-split-ambient-on #yt-split-ambient {
-  opacity: calc(var(--split-ambient-opacity) * var(--split-ambient-scale, 1));
+  opacity: var(--split-ambient-opacity);
+}
+
+html.yt-split-ambient-on:not([dark]) #yt-split-ambient {
+  opacity: var(--split-ambient-opacity-light, var(--split-ambient-opacity));
 }
 
 /* Anti-banding grain: a SEPARATE layer above the glow, never inside the
@@ -1305,4 +1311,28 @@ html.yt-split-active.yt-split-wide-side
   #yt-split-welcome {
     animation: none !important;
   }
+}
+
+/* "Show recommendations" / "Show comments" off (toolbar panel; content.js
+   applyHiddenPanes): the pane is removed completely and the other takes
+   its space. The :not(#_#_#_) adds specificity only (it always matches),
+   to outrank the long :not(:has(...collapsed)) selectors above that set
+   the panes' margins and the two-window rule forcing #secondary visible.
+   content.js also keeps the side-by-side layout off while a pane is
+   hidden. */
+html.yt-split-active.yt-split-hide-recs:not(#_#_#_) #secondary,
+html.yt-split-active.yt-split-hide-comments:not(#_#_#_) #yt-split-comments-pane,
+html.yt-split-active.yt-split-hide-recs:not(#_#_#_) #yt-split-vresizer,
+html.yt-split-active.yt-split-hide-comments:not(#_#_#_) #yt-split-vresizer {
+  display: none !important;
+}
+
+html.yt-split-active.yt-split-hide-comments:not(#_#_#_) #secondary:not(.yt-split-pane-collapsed) {
+  flex: 1 1 auto !important;
+}
+
+html.yt-split-active.yt-split-hide-comments:not(#_#_#_) #secondary,
+html.yt-split-active.yt-split-hide-recs:not(#_#_#_) #yt-split-comments-pane {
+  margin-top: 0 !important;
+  margin-bottom: 0 !important;
 }

@@ -2045,6 +2045,34 @@ img {
   transform: translate(-50%, -50%);
 }
 
+.pm-slider-label {
+  flex: 0 0 118px;
+}
+
+.pm-row.pm-slider-row + .pm-row.pm-slider-row {
+  border-top: none;
+}
+
+/* One-line rows, like the real panel's compact rows. */
+.pm-row.pm-compact {
+  align-items: center;
+  padding: 9px 0;
+}
+
+.pm-compact .pm-title {
+  flex: 1;
+}
+
+.pm-compact .pm-switch {
+  margin-top: 0;
+}
+
+.pm-select {
+  padding: 3px 8px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
 .pm-slider-value {
   flex: 0 0 auto;
   width: 36px;
@@ -2055,7 +2083,7 @@ img {
 
 .pm-footer {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   gap: 12px;
   margin-top: 4px;
   padding-top: 10px;
