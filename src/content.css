@@ -787,9 +787,48 @@ html.yt-split-active #below #top-row {
   flex-wrap: wrap !important;
   align-items: center !important;
   justify-content: space-between !important;
-  gap: 12px 16px !important;
+  gap: 8px !important;
   margin: 12px 0 0 !important;
   height: auto !important;
+}
+
+/* Even gaps between the buttons in this row (Join, Subscribe, like and
+   dislike, Share, ...), reported uneven once the pane is narrow enough
+   for them to take two rows. YouTube spaces them with a mix of left and
+   right margins of different sizes, tuned for one line; wrapped, those
+   add up differently around each button, and a button starting a new row
+   kept its left margin. Here every button container spaces its children
+   with one 8px gap (across and between rows) and the children's own
+   margins are removed. gap only takes effect on containers YouTube
+   already lays out as flex, so display is never set, with one exception:
+   a child with no elements inside (an unused slot such as the Join
+   button's when the channel has none) is hidden, since an empty flex item
+   would still be given a gap on each side. */
+html.yt-split-active #below #owner,
+html.yt-split-active #below #actions-inner,
+html.yt-split-active #below #actions #menu,
+html.yt-split-active #below #actions ytd-menu-renderer,
+html.yt-split-active #below #actions #top-level-buttons-computed,
+html.yt-split-active #below #actions #flexible-item-buttons {
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+}
+
+html.yt-split-active #below #owner > *,
+html.yt-split-active #below #actions-inner > *,
+html.yt-split-active #below #actions #menu > *,
+html.yt-split-active #below #actions ytd-menu-renderer > *,
+html.yt-split-active #below #actions #top-level-buttons-computed > *,
+html.yt-split-active #below #actions #flexible-item-buttons > * {
+  margin: 0 !important;
+}
+
+html.yt-split-active #below #owner > :not(:has(*)),
+html.yt-split-active #below #actions ytd-menu-renderer > :not(:has(*)),
+html.yt-split-active #below #actions #top-level-buttons-computed > :not(:has(*)),
+html.yt-split-active #below #actions #flexible-item-buttons > :not(:has(*)) {
+  display: none !important;
 }
 
 /* One vertical rhythm for the description pane: 12px between the title,
