@@ -21,6 +21,7 @@
     ambientEnabled: true,
     ambientStrength: 70, // dark theme
     ambientStrengthLight: 70,
+    showDescription: true,
     showRecommendations: true,
     showComments: true,
     sideWidth: "auto", // or a SIDE_WIDTH_PRESETS key
@@ -31,6 +32,7 @@
   // "Side pane width" presets: the side pane's default share of the layout.
   // "auto" (not listed) sizes it around the video instead (applySideWidth).
   const SIDE_WIDTH_PRESETS = { narrow: 0.3, balanced: 0.4, wide: 0.5 };
+  const HIDE_DESC_CLASS = "yt-split-hide-desc";
   const HIDE_RECS_CLASS = "yt-split-hide-recs";
   const HIDE_COMMENTS_CLASS = "yt-split-hide-comments";
   // What "Remember my layout" last saved: { sideRatio, topHeight,
@@ -45,7 +47,7 @@
   let storageLoaded = false;
 
   function isSwapped() {
-    return settings.videoOnRight && windowRole === "none";
+    return settings.videoOnRight && windowRole === "none" && !isVideoOnly();
   }
   let startRetryScheduled = false;
   let dragState = null;
@@ -1377,10 +1379,11 @@
   // not the manifest version, so small fixes don't nag. New installs get
   // the first-run hint only: dismissing it marks this note seen too.
   const WHATS_NEW = {
-    version: "1.4",
+    version: "1.5",
     tips: [
       "Ambient light now works in YouTube's light theme too, with its own strength.",
-      "Hide Recommended or Comments completely, and pick a default side pane width.",
+      "Hide the description, Recommended or Comments. Hide all three for the video alone.",
+      "Pick a default side pane width.",
       "Find these under the extension's toolbar icon.",
     ],
   };
@@ -1439,12 +1442,25 @@
   let sidePaneObserver = null;
   let observedSidePane = null;
 
-  // "Show recommendations" / "Show comments" (toolbar panel): off removes
+  // All three "Show ..." settings off: nothing is left for the side pane, so
+  // the video takes the whole width, laid out like two-window mode's main
+  // window (.yt-split-solo). A live chat is never hidden, so a live stream
+  // keeps its side pane.
+  function isVideoOnly() {
+    if (windowRole !== "none") return false;
+    if (settings.showDescription || settings.showRecommendations || settings.showComments) return false;
+    const secondary = document.querySelector("#secondary");
+    return !(secondary && hasLiveChat(secondary));
+  }
+
+  // "Show description" / "Show recommendations" / "Show comments" (toolbar
+  // panel): off removes
   // the pane completely (content.css), and the other one takes the space.
   // During a live stream #secondary holds the live chat, which is never
   // hidden by the recommendations setting.
   function applyHiddenPanes() {
     const root = document.documentElement;
+    root.classList.toggle(HIDE_DESC_CLASS, !settings.showDescription);
     const secondary = document.querySelector("#yt-split-side-pane #secondary");
     root.classList.toggle(
       HIDE_RECS_CLASS,
@@ -1564,7 +1580,7 @@
     if (!columns || !secondary || !primary) return;
 
     document.documentElement.classList.add("yt-split-active");
-    document.documentElement.classList.toggle("yt-split-solo", windowRole === "main");
+    document.documentElement.classList.toggle("yt-split-solo", windowRole === "main" || isVideoOnly());
     document.documentElement.classList.toggle("yt-split-companion", windowRole === "companion");
     document.documentElement.classList.toggle("yt-split-swapped", isSwapped());
     if (windowRole === "companion") silenceCompanionVideo();
@@ -1690,6 +1706,7 @@
       "yt-split-solo",
       "yt-split-companion",
       "yt-split-swapped",
+      HIDE_DESC_CLASS,
       HIDE_RECS_CLASS,
       HIDE_COMMENTS_CLASS,
       WIDE_SIDE_CLASS
@@ -2677,7 +2694,12 @@
       }
       if (changes.ambientEnabled || changes.ambientStrength || changes.ambientStrengthLight) applyAmbientSettings();
       // Applied in place (no start()), so a dragged divider survives.
-      if ((changes.showRecommendations || changes.showComments) && !rebuild && isWatchPage()) ensureLayout();
+      const paneChange = changes.showDescription || changes.showRecommendations || changes.showComments;
+      // Switching to or from video only changes the grid itself, so that
+      // one does go through start(), to resize the video for its new column.
+      const wasVideoOnly = windowRole === "none" && document.documentElement.classList.contains("yt-split-solo");
+      if (paneChange && wasVideoOnly !== isVideoOnly()) rebuild = true;
+      if (paneChange && !rebuild && isWatchPage()) ensureLayout();
       if (changes.welcomeSeen) welcomeSeen = !!changes.welcomeSeen.newValue;
       if (changes.seenVersion) {
         seenVersion = changes.seenVersion.newValue;

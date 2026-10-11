@@ -7,6 +7,7 @@ const DEFAULTS = {
   ambientEnabled: true,
   ambientStrength: 70,
   ambientStrengthLight: 70,
+  showDescription: true,
   showRecommendations: true,
   showComments: true,
   sideWidth: "auto",

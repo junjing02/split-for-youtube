@@ -41,8 +41,8 @@
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Geist:wght@400..700&display=swap" />
   <!-- ?v= busts GitHub Pages' 10-minute browser cache (max-age=600) so new HTML never
        loads with a stale stylesheet/script. Bump it whenever style.css or script.js changes. -->
-  <script src="theme.js?v=31"></script>
-  <link rel="stylesheet" href="style.css?v=31" />
+  <script src="theme.js?v=32"></script>
+  <link rel="stylesheet" href="style.css?v=32" />
 </head>
 <body>
   <!-- Decorative page backdrop (style.css "Page backdrop"). -->
@@ -350,7 +350,7 @@
             </div>
             <div>
               <dt>Show only what you want</dt>
-              <dd>Hide recommendations or comments completely, and choose how wide the side pane starts.</dd>
+              <dd>Hide the description, recommendations or comments completely (all three for the video alone), and choose how wide the side pane starts.</dd>
             </div>
             <div>
               <dt>Remember my layout</dt>
@@ -391,6 +391,10 @@
               <span class="pm-slider-label">Glow in light theme</span>
               <span class="pm-slider"><i></i></span>
               <span class="pm-slider-value">70%</span>
+            </div>
+            <div class="pm-row pm-compact">
+              <span class="pm-title">Show description</span>
+              <i class="pm-switch is-on"></i>
             </div>
             <div class="pm-row pm-compact">
               <span class="pm-title">Show recommendations</span>
@@ -466,8 +470,8 @@
             <p>In light theme it's on by default: the Ambient light switch behind the extension's toolbar icon controls it. In dark theme it also follows YouTube's own Ambient mode, in the player's settings (the gear icon). You can set the glow's strength for each theme from the same toolbar panel.</p>
           </details>
           <details class="faq-item">
-            <summary>Can I hide recommendations or comments?</summary>
-            <p>Yes. Click the extension's toolbar icon and switch off Show recommendations or Show comments. The pane disappears and the other one takes its space. During a live stream, the live chat always stays.</p>
+            <summary>Can I hide the description, recommendations or comments?</summary>
+            <p>Yes. Click the extension's toolbar icon and switch off Show description, Show recommendations or Show comments. The pane disappears and the others take its space. Switch off all three and the video fills the whole window. During a live stream, the live chat always stays.</p>
           </details>
           <details class="faq-item">
             <summary>Can I change how it works?</summary>
@@ -500,6 +504,6 @@
     </div>
   </footer>
 
-  <script src="script.js?v=31"></script>
+  <script src="script.js?v=32"></script>
 </body>
 </html>

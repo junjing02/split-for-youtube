@@ -1415,3 +1415,16 @@ html.yt-split-active.yt-split-hide-recs:not(#_#_#_) #yt-split-comments-pane {
   margin-top: 0 !important;
   margin-bottom: 0 !important;
 }
+
+/* "Show description" off: the description pane (title, channel row,
+   buttons and description) is removed too. Side by side, the grid's empty
+   first row must not leave a gap above the two columns. With all three
+   panes off, content.js adds .yt-split-solo and the video takes the full
+   width. */
+html.yt-split-active.yt-split-hide-desc:not(#_#_#_) #yt-split-desc-pane {
+  display: none !important;
+}
+
+html.yt-split-active.yt-split-hide-desc.yt-split-wide-side:not(#_#_#_) #yt-split-side-pane {
+  row-gap: 0 !important;
+}
